@@ -14,13 +14,12 @@ export default function Header() {
             Atten<span className="text-blue-600">Do</span>
           </span>
         </Link>
-        <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
-            <Link href="#solutions" className="hover:text-blue-600 transition-colors">
-                Tính Năng
-            </Link>
-        </nav>
+
         {/* Navigation */}
         <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
+          <Link href="#solutions" className="hover:text-blue-600 transition-colors">
+            Tính Năng
+          </Link>
           <Link
             href="#login"
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all text-xs font-semibold shadow-sm"
@@ -31,4 +30,4 @@ export default function Header() {
       </div>
     </header>
   );
-};
+}

@@ -1,7 +1,6 @@
-import { QrCode, ScanFace, MapPin, BarChart3, FileSpreadsheet, ShieldCheck } from "lucide-react";
+import { QrCode, ScanFace, MapPin } from "lucide-react";
 
 export const Solutions = () => {
-
   const solutions = [
     {
       icon: <QrCode className="w-6 h-6 text-blue-600" />,
@@ -13,29 +12,14 @@ export const Solutions = () => {
       icon: <MapPin className="w-6 h-6 text-blue-600" />,
       title: "2. Khoanh Vùng Vị Trí GPS",
       desc: "Giới hạn phạm vi điểm danh theo tọa độ địa lý, tự động phát hiện ứng dụng can thiệp GPS ảo.",
-      link: "/test-location"
+      link: "/test-location",
     },
     {
       icon: <ScanFace className="w-6 h-6 text-blue-600" />,
       title: "3. Tạo mã Qr + xác minh địa chỉ",
       desc: "Xác minh địa chỉ.",
-      link: "/host/setup"
+      link: "/host/setup",
     },
-    // {
-    //   icon: <BarChart3 className="w-6 h-6 text-blue-600" />,
-    //   title: "4. Thống Kê Chuyên Cần",
-    //   desc: "Theo dõi tỷ lệ có mặt, đi muộn, vắng mặt của từng phòng ban, lớp học theo thời gian thực.",
-    // },
-    // {
-    //   icon: <FileSpreadsheet className="w-6 h-6 text-blue-600" />,
-    //   title: "5. Kết Xuất Báo Cáo 1-Click",
-    //   desc: "Xuất file bảng công Excel/PDF theo mẫu chuẩn doanh nghiệp và cơ sở giáo dục một cách tự động.",
-    // },
-    // {
-    //   icon: <ShieldCheck className="w-6 h-6 text-blue-600" />,
-    //   title: "6. Phân Quyền Quản Trị",
-    //   desc: "Tách biệt vai trò Quản trị viên, Trưởng bộ phận/Giảng viên và Nhân viên/Sinh viên một cách bảo mật.",
-    // },
   ];
 
   return (
@@ -60,13 +44,13 @@ export const Solutions = () => {
               className="p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between"
               href={item.link}
             >
-                <div>
-                  <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-5">
-                    {item.icon}
-                  </div>
-                  <h4 className="text-base font-bold text-slate-900 mb-2">{item.title}</h4>
-                  <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-5">
+                  {item.icon}
                 </div>
+                <h4 className="text-base font-bold text-slate-900 mb-2">{item.title}</h4>
+                <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+              </div>
             </a>
           ))}
         </div>

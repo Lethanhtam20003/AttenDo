@@ -4,6 +4,11 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Navigation, Plus, Trash2, GripVertical, ArrowRight, ShieldCheck } from 'lucide-react';
+import { useSessionStorageState } from '@/hooks/useSessionStorageState';
+
+const EVENT_ID = 'evt-88219';
+const EVENT_NAME_STORAGE_KEY = `host-event-name:${EVENT_ID}`;
+const DEFAULT_EVENT_NAME = 'Hội thảo Trực quan Hóa Dữ liệu 2026';
 
 const MapSelector = dynamic(() => import('@/components/host/MapSelector'), {
   ssr: false,
@@ -19,6 +24,7 @@ interface CustomField {
 }
 
 export default function HostSetupPage() {
+  const [eventName, setEventName] = useSessionStorageState(EVENT_NAME_STORAGE_KEY, DEFAULT_EVENT_NAME);
   const [coords, setCoords] = useState({ lat: 10.7769, lng: 106.7009 });
   const [radius, setRadius] = useState(100);
   const [isLocating, setIsLocating] = useState(false);
@@ -67,7 +73,7 @@ export default function HostSetupPage() {
           <p className="text-sm text-slate-500 mt-1">Thiết lập Geofencing và thông tin người tham gia trước khi phát sóng.</p>
         </div>
         <Link
-          href="/host/live/evt-88219"
+          href={`/host/live/${EVENT_ID}`}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-sm transition-colors"
         >
           Khởi chạy màn hình
@@ -76,6 +82,20 @@ export default function HostSetupPage() {
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
+        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+          <label htmlFor="event-name" className="block text-sm font-semibold text-slate-900">
+            Tên sự kiện
+          </label>
+          <input
+            id="event-name"
+            type="text"
+            value={eventName}
+            onChange={(event) => setEventName(event.target.value)}
+            placeholder="Nhập tên sự kiện"
+            className="mt-2 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+          />
+        </section>
+
         {/* Phần 1: Thiết lập vị trí */}
         <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
           <div className="flex items-center justify-between pb-5 border-b border-slate-100">

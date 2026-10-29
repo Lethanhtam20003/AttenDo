@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { MapPin, ShieldAlert, CheckCircle2, Lock } from 'lucide-react';
 
-export default function AttendeeCheckinPage({ params }: { params: { eventId: string } }) {
+export default function AttendeeCheckinPage() {
+  const params = useParams<{ eventId: string }>();
+  const eventId = params?.eventId;
+
   const [gpsReady, setGpsReady] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -35,7 +39,7 @@ export default function AttendeeCheckinPage({ params }: { params: { eventId: str
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!gpsReady) {
+    if (!gpsReady || !coords) {
       alert('Chưa lấy được tọa độ GPS của bạn.');
       return;
     }
@@ -46,7 +50,9 @@ export default function AttendeeCheckinPage({ params }: { params: { eventId: str
       setIsSubmitting(false);
       setIsSuccess(true);
       // Khóa thiết bị trong LocalStorage để tránh gửi trùng
-      localStorage.setItem(`checkedin_${params.eventId}`, 'true');
+      if (eventId) {
+        localStorage.setItem(`checkedin_${eventId}`, 'true');
+      }
     }, 800);
   };
 
@@ -65,6 +71,12 @@ export default function AttendeeCheckinPage({ params }: { params: { eventId: str
               <span className="text-slate-400">Trạng thái:</span>
               <span className="text-emerald-600 font-semibold">Đã xác minh GPS</span>
             </div>
+            {coords && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Tọa độ:</span>
+                <span className="text-slate-800">{coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Thiết bị:</span>
               <span className="text-slate-800">Đã khóa gửi trùng</span>
@@ -84,10 +96,10 @@ export default function AttendeeCheckinPage({ params }: { params: { eventId: str
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
         {/* Banner trạng thái GPS */}
-        {gpsReady ? (
+        {gpsReady && coords ? (
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-emerald-800 text-xs font-medium">
             <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Đã định vị vị trí thành công (GPS Khả dụng)</span>
+            <span>Đã định vị ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})</span>
           </div>
         ) : (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-amber-800 text-xs font-medium">

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { MapPin, Info } from 'lucide-react';
 
 interface MapSelectorProps {

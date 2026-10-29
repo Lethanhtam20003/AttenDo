@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Users, QrCode, RefreshCw, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { Download, Users, QrCode, ShieldCheck } from 'lucide-react';
+import { useSessionStorageState } from '@/hooks/useSessionStorageState';
+
+const DEFAULT_EVENT_NAME = 'Hội thảo Trực quan Hóa Dữ liệu 2026';
 
 interface AttendeeLog {
   id: string;
@@ -13,9 +17,11 @@ interface AttendeeLog {
 }
 
 export default function HostLiveScreen() {
+  const { eventId } = useParams<{ eventId: string }>();
+  const [eventName] = useSessionStorageState(`host-event-name:${eventId}`, DEFAULT_EVENT_NAME);
   const [pin, setPin] = useState('7392');
   const [timeLeft, setTimeLeft] = useState(30);
-  const [logs, setLogs] = useState<AttendeeLog[]>([
+  const [logs] = useState<AttendeeLog[]>([
     { id: '1', name: 'Nguyễn Văn An', phone: '0901234567', org: 'Viện Công nghệ', checkInTime: '09:28:14', distance: 12 },
     { id: '2', name: 'Trần Thị Thuỷ Tiên', phone: '0912345678', org: 'Khối Truyền Thông', checkInTime: '09:27:50', distance: 34 },
     { id: '3', name: 'Lê Hoàng Long', phone: '0988776655', org: 'Ban Quản lý', checkInTime: '09:27:12', distance: 6 },
@@ -50,8 +56,8 @@ export default function HostLiveScreen() {
               Q
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight">Hội thảo Trực quan Hóa Dữ liệu 2026</h1>
-              <span className="text-xs text-slate-400 font-mono">Phiên: #EVT-88219</span>
+              <h1 className="text-sm font-bold text-slate-900 tracking-tight">{eventName}</h1>
+              <span className="text-xs text-slate-400 font-mono">Phiên: #{eventId}</span>
             </div>
           </div>
 
@@ -86,7 +92,7 @@ export default function HostLiveScreen() {
             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-inner mb-3">
               <div className="w-48 h-48 bg-slate-900 rounded-xl flex flex-col items-center justify-center text-white text-xs gap-2">
                 <QrCode className="w-12 h-12 text-slate-300" />
-                <span className="text-[11px] text-slate-400">checkin.app/checkin/evt-88219</span>
+                <span className="text-[11px] text-slate-400">checkin.app/checkin/{eventId || 'evt-88219'}</span>
               </div>
             </div>
 
