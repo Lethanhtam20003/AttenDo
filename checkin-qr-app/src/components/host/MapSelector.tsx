@@ -1,6 +1,9 @@
 'use client';
 
-import { MapPin, Info } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Info } from 'lucide-react';
 
 interface MapSelectorProps {
   lat: number;
@@ -10,36 +13,87 @@ interface MapSelectorProps {
 }
 
 export default function MapSelector({ lat, lng, radius, onChangeLocation }: MapSelectorProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const circleRef = useRef<L.Circle | null>(null);
+  const onChangeLocationRef = useRef(onChangeLocation);
+
+  useEffect(() => {
+    onChangeLocationRef.current = onChangeLocation;
+  });
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+
+    // Cấu hình icon marker chuẩn từ CDN cho Leaflet
+    const icon = L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
+
+    const map = L.map(containerRef.current).setView([lat, lng], 16);
+    mapRef.current = map;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(map);
+
+    const marker = L.marker([lat, lng], { draggable: true, icon }).addTo(map);
+    markerRef.current = marker;
+
+    const circle = L.circle([lat, lng], {
+      radius,
+      color: '#2563eb',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.15,
+      weight: 2,
+    }).addTo(map);
+    circleRef.current = circle;
+
+    marker.on('dragend', () => {
+      const pos = marker.getLatLng();
+      circle.setLatLng(pos);
+      onChangeLocationRef.current(pos.lat, pos.lng);
+    });
+
+    map.on('click', (e) => {
+      marker.setLatLng(e.latlng);
+      circle.setLatLng(e.latlng);
+      onChangeLocationRef.current(e.latlng.lat, e.latlng.lng);
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cập nhật vị trí và bán kính khi state thay đổi
+  useEffect(() => {
+    if (!mapRef.current || !markerRef.current || !circleRef.current) return;
+    const currentPos = markerRef.current.getLatLng();
+    if (Math.abs(currentPos.lat - lat) > 0.00001 || Math.abs(currentPos.lng - lng) > 0.00001) {
+      markerRef.current.setLatLng([lat, lng]);
+      circleRef.current.setLatLng([lat, lng]);
+      mapRef.current.panTo([lat, lng]);
+    }
+    circleRef.current.setRadius(radius);
+  }, [lat, lng, radius]);
+
   return (
-    <div className="relative w-full h-[280px] rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center select-none group">
-      {/* Lưới giả lập Map View (có thể thay bằng <MapContainer> của react-leaflet) */}
-      <div 
-        className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.2px,transparent_1.2px)] [background-size:16px_16px] opacity-80"
-        onClick={(e) => {
-          // Mock click ghim vị trí mới
-          const rect = e.currentTarget.getBoundingClientRect();
-          const offsetX = (e.clientX - rect.left - rect.width / 2) / 10000;
-          const offsetY = (e.clientY - rect.top - rect.height / 2) / 10000;
-          onChangeLocation(lat - offsetY, lng + offsetX);
-        }}
-      />
-
-      {/* Vòng tròn bán kính Geofence */}
-      <div 
-        className="relative flex items-center justify-center transition-all duration-300"
-        style={{ transform: `scale(${radius / 100})` }}
-      >
-        <div className="w-36 h-36 rounded-full bg-blue-600/15 border-2 border-blue-600/40 animate-pulse pointer-events-none" />
-      </div>
-
-      {/* Ghim trung tâm */}
-      <div className="absolute pointer-events-none flex flex-col items-center">
-        <MapPin className="w-8 h-8 text-blue-600 drop-shadow-md -translate-y-4" />
-      </div>
-
-      <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-200/80 text-xs text-slate-600 shadow-sm flex items-center gap-1.5">
-        <Info className="w-3.5 h-3.5 text-blue-600" />
-        Click lên bản đồ để thay đổi tâm ghim
+    <div className="relative w-full h-[280px] rounded-xl border border-slate-200 overflow-hidden shadow-inner">
+      <div ref={containerRef} className="w-full h-full z-0" />
+      <div className="absolute bottom-2 left-2 z-[400] bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-200/80 text-[11px] text-slate-700 shadow-sm flex items-center gap-1.5 pointer-events-none">
+        <Info className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+        Kéo ghim hoặc click trên bản đồ để đặt tâm điểm danh
       </div>
     </div>
   );

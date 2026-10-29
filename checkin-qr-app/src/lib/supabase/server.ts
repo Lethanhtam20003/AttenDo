@@ -1,0 +1,37 @@
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+/**
+ * Dùng trong Server Components, Server Actions, Route Handlers.
+ * Đọc cookie từ request để hỗ trợ xác thực phía server.
+ */
+export async function createClient() {
+  let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
+  try {
+    cookieStore = await cookies();
+  } catch {
+    // Khi gọi ngoài request context (scripts, background tasks, unit tests)
+  }
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore ? cookieStore.getAll() : [];
+        },
+        setAll(cookiesToSet) {
+          if (!cookieStore) return;
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server Component không thể set cookie – bỏ qua
+          }
+        },
+      },
+    }
+  );
+}

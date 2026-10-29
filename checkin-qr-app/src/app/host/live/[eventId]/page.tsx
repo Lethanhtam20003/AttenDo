@@ -1,49 +1,160 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Download, Users, QrCode, ShieldCheck } from 'lucide-react';
-import { useSessionStorageState } from '@/hooks/useSessionStorageState';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Download, Users, QrCode, ShieldCheck, Loader2 } from 'lucide-react';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { rotatePin, getCurrentPin } from '@/actions/pins';
+import { getAttendanceList } from '@/actions/checkin';
+import { getEvent } from '@/actions/events';
+import type { AttendanceRecord, EventPin, Event } from '@/types/database';
 
-const DEFAULT_EVENT_NAME = 'Hội thảo Trực quan Hóa Dữ liệu 2026';
+const PIN_INTERVAL_SEC = 30;
 
-interface AttendeeLog {
-  id: string;
-  name: string;
-  phone: string;
-  org: string;
-  checkInTime: string;
-  distance: number;
-}
-
-export default function HostLiveScreen() {
+function HostLiveContent() {
   const { eventId } = useParams<{ eventId: string }>();
-  const [eventName] = useSessionStorageState(`host-event-name:${eventId}`, DEFAULT_EVENT_NAME);
-  const [pin, setPin] = useState('7392');
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [logs] = useState<AttendeeLog[]>([
-    { id: '1', name: 'Nguyễn Văn An', phone: '0901234567', org: 'Viện Công nghệ', checkInTime: '09:28:14', distance: 12 },
-    { id: '2', name: 'Trần Thị Thuỷ Tiên', phone: '0912345678', org: 'Khối Truyền Thông', checkInTime: '09:27:50', distance: 34 },
-    { id: '3', name: 'Lê Hoàng Long', phone: '0988776655', org: 'Ban Quản lý', checkInTime: '09:27:12', distance: 6 },
-  ]);
 
-  // Bộ đếm chu kỳ OTP / PIN ngẫu nhiên 30 giây
+  const [event, setEvent] = useState<Event | null>(null);
+  const [pin, setPin] = useState('----');
+  const [timeLeft, setTimeLeft] = useState(PIN_INTERVAL_SEC);
+  const [logs, setLogs] = useState<AttendanceRecord[]>([]);
+  const [checkinUrl, setCheckinUrl] = useState('');
+  const [newAttendeeId, setNewAttendeeId] = useState<string | null>(null);
+
+  // ── Khởi tạo dữ liệu ban đầu ──────────────────────────────
+  useEffect(() => {
+    if (!eventId) return;
+
+    // Tạo URL cho QR Code
+    const origin = window.location.origin;
+    const url = `${origin}/checkin/${eventId}`;
+    Promise.resolve().then(() => setCheckinUrl(url));
+
+    // Load thông tin sự kiện
+    getEvent(eventId).then((data) => {
+      if (data) setEvent(data as Event);
+    });
+
+    // Load mã PIN hiện tại ngay lập tức
+    getCurrentPin(eventId).then((res) => {
+      if (res.success) {
+        setPin(res.data.pin);
+        const remaining = Math.max(1, Math.round((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000));
+        setTimeLeft(Math.min(remaining, PIN_INTERVAL_SEC));
+      }
+    });
+
+    // Load danh sách điểm danh ban đầu
+    getAttendanceList(eventId).then(setLogs);
+  }, [eventId]);
+
+  // ── Quản lý PIN & countdown ──────────────────────────────
+  const handleRotatePin = useCallback(async () => {
+    if (!eventId) return;
+    const result = await rotatePin(eventId);
+    if (result.success) {
+      setPin(result.data.pin);
+      setTimeLeft(PIN_INTERVAL_SEC);
+    }
+  }, [eventId]);
+
+  // Countdown timer – tự gọi rotatePin khi về 0
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          setPin(Math.floor(1000 + Math.random() * 9000).toString());
-          return 30;
+          handleRotatePin();
+          return PIN_INTERVAL_SEC;
         }
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
-  }, []);
+  }, [handleRotatePin]);
 
+  // ── Realtime: đồng bộ PIN mới từ server ──────────────────
+  useRealtimeTable<EventPin>(
+    'event_pins',
+    `event_id=eq.${eventId}`,
+    'INSERT',
+    (payload) => {
+      if (payload.new && 'current_pin' in payload.new) {
+        setPin(payload.new.current_pin as string);
+        setTimeLeft(PIN_INTERVAL_SEC);
+      }
+    }
+  );
+
+  // ── Realtime: cập nhật danh sách điểm danh ngay lập tức ──
+  useRealtimeTable<AttendanceRecord>(
+    'attendance_records',
+    `event_id=eq.${eventId}`,
+    'INSERT',
+    (payload) => {
+      if (payload.new && 'id' in payload.new) {
+        const newRecord = payload.new as AttendanceRecord;
+        setLogs((prev) => {
+          // Tránh duplicate nếu record đã có
+          if (prev.some((r) => r.id === newRecord.id)) return prev;
+          return [newRecord, ...prev];
+        });
+        setNewAttendeeId(newRecord.id);
+        setTimeout(() => setNewAttendeeId(null), 3000);
+      }
+    }
+  );
+
+  // ── Xuất file CSV/Excel đa năng (UTF-8 BOM hỗ trợ tiếng Việt) ──
   const handleExportExcel = () => {
-    alert('Đang trích xuất toàn bộ dữ liệu ra file Excel (.xlsx)...');
+    if (logs.length === 0) {
+      alert('Chưa có dữ liệu người tham gia điểm danh để xuất.');
+      return;
+    }
+
+    const customFields = event?.custom_fields?.filter((f) => f.key !== 'full_name') ?? [];
+
+    const headers = [
+      'STT',
+      'Họ và tên',
+      ...customFields.map((f) => f.label),
+      'Thời gian điểm danh',
+      'Khoảng cách GPS (m)',
+      'Tọa độ Vĩ độ (Lat)',
+      'Tọa độ Kinh độ (Lng)',
+      'Mã thiết bị',
+    ];
+
+    const escapeCsv = (val: string | number | null | undefined) => {
+      const str = String(val ?? '');
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+
+    const rows = logs.map((r, idx) => [
+      escapeCsv(idx + 1),
+      escapeCsv(r.full_name),
+      ...customFields.map((f) => escapeCsv(r.custom_data?.[f.key] ?? '')),
+      escapeCsv(new Date(r.checked_in_at).toLocaleString('vi-VN')),
+      escapeCsv(r.distance_meters !== null ? `${r.distance_meters}m` : 'Hợp lệ'),
+      escapeCsv(r.user_lat ?? ''),
+      escapeCsv(r.user_lng ?? ''),
+      escapeCsv(r.device_id ?? ''),
+    ]);
+
+    const csvContent = [
+      headers.map(escapeCsv).join(','),
+      ...rows.map((row) => row.join(',')),
+    ].join('\r\n');
+
+    // Thêm \uFEFF (UTF-8 BOM) để Excel tự nhận diện font tiếng Việt không bị lỗi font
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cleanTitle = (event?.title || 'diem_danh').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+    a.download = `diem_danh_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -56,7 +167,9 @@ export default function HostLiveScreen() {
               Q
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight">{eventName}</h1>
+              <h1 className="text-sm font-bold text-slate-900 tracking-tight">
+                {event?.title || 'Đang kết nối sự kiện...'}
+              </h1>
               <span className="text-xs text-slate-400 font-mono">Phiên: #{eventId}</span>
             </div>
           </div>
@@ -69,10 +182,10 @@ export default function HostLiveScreen() {
             <button
               type="button"
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              Xuất file Excel (.xlsx)
+              Xuất file (.csv / Excel)
             </button>
           </div>
         </div>
@@ -88,13 +201,27 @@ export default function HostLiveScreen() {
               Quét mã bằng camera điện thoại
             </div>
 
-            {/* Khung hiển thị QR code */}
+            {/* QR Code thực tế */}
             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-inner mb-3">
-              <div className="w-48 h-48 bg-slate-900 rounded-xl flex flex-col items-center justify-center text-white text-xs gap-2">
-                <QrCode className="w-12 h-12 text-slate-300" />
-                <span className="text-[11px] text-slate-400">checkin.app/checkin/{eventId || 'evt-88219'}</span>
-              </div>
+              {checkinUrl ? (
+                <QRCodeCanvas
+                  value={checkinUrl}
+                  size={200}
+                  level="M"
+                  includeMargin
+                  aria-label="Mã QR điểm danh"
+                />
+              ) : (
+                <div className="w-48 h-48 bg-slate-100 rounded-xl flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+                </div>
+              )}
             </div>
+            {checkinUrl && (
+              <p className="text-[11px] text-slate-400 font-mono break-all px-2 select-all">
+                {checkinUrl}
+              </p>
+            )}
 
             {/* Dynamic PIN ngẫu nhiên */}
             <div className="w-full mt-4 pt-5 border-t border-slate-100 flex flex-col items-center">
@@ -112,7 +239,7 @@ export default function HostLiveScreen() {
               <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
                 <div
                   className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${(timeLeft / 30) * 100}%` }}
+                  style={{ width: `${(timeLeft / PIN_INTERVAL_SEC) * 100}%` }}
                 />
               </div>
             </div>
@@ -128,36 +255,82 @@ export default function HostLiveScreen() {
                 <h2 className="font-semibold text-slate-900">Danh sách có mặt thời gian thực</h2>
               </div>
               <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-                Đã vào phòng: <span className="text-slate-900 font-bold">{logs.length}</span>
+                Đã vào phòng: <span className="text-blue-600 font-bold text-sm">{logs.length}</span>
               </span>
             </div>
 
-            <div className="overflow-y-auto divide-y divide-slate-100 flex-1 max-h-[540px]">
-              {logs.map((item) => (
-                <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-9 h-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-xs">
-                      {item.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900 leading-tight">{item.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{item.org} • {item.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-xs font-mono font-medium text-slate-800 block">{item.checkInTime}</span>
-                    <span className="text-[11px] font-medium text-emerald-600 flex items-center justify-end gap-1 mt-0.5">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      Cách {item.distance}m (Hợp lệ)
-                    </span>
-                  </div>
+            <div className="overflow-y-auto divide-y divide-slate-100 flex-1 max-h-[560px]">
+              {logs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-slate-400 text-sm gap-2">
+                  <Users className="w-8 h-8 opacity-30" />
+                  <p>Chưa có ai điểm danh. Đang chờ người tham gia quét mã...</p>
                 </div>
-              ))}
+              ) : (
+                logs.map((item) => {
+                  const isNew = item.id === newAttendeeId;
+                  const extraInfo = Object.entries(item.custom_data || {})
+                    .filter(([k]) => k !== 'full_name')
+                    .map(([, v]) => v)
+                    .filter(Boolean)
+                    .join(' • ');
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-4 flex items-center justify-between transition-colors duration-500 ${
+                        isNew ? 'bg-blue-50/80' : 'hover:bg-slate-50/70'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm shrink-0">
+                          {item.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 leading-tight">
+                            {item.full_name}
+                          </p>
+                          {extraInfo && (
+                            <p className="text-xs text-slate-500 mt-0.5">{extraInfo}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-mono font-medium text-slate-800 block">
+                          {new Date(item.checked_in_at).toLocaleTimeString('vi-VN')}
+                        </span>
+                        <span className="text-[11px] font-medium text-emerald-600 flex items-center justify-end gap-1 mt-0.5">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          {item.distance_meters !== null
+                            ? `Cách ${item.distance_meters}m (Hợp lệ)`
+                            : 'Đã xác minh GPS'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
       </main>
     </div>
+  );
+}
+
+export default function HostLiveScreen() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-xs text-slate-500 font-medium">Đang tải màn hình phát sóng...</p>
+          </div>
+        </div>
+      }
+    >
+      <HostLiveContent />
+    </Suspense>
   );
 }
