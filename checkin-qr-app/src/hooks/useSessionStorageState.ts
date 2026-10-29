@@ -1,5 +1,8 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
+// Dùng một sự kiện tùy chỉnh của trình duyệt để thông báo cho tất cả các instance của hook
+// khi sessionStorage thay đổi, giúp các component đồng bộ dữ liệu ngay cả khi giá trị được cập nhật
+// từ tab khác hoặc từ một hook khác.
 const SESSION_STORAGE_UPDATE_EVENT = 'session-storage-update';
 
 export function useSessionStorageState(key: string, initialValue: string) {
@@ -31,6 +34,8 @@ export function useSessionStorageState(key: string, initialValue: string) {
         return;
       }
       try {
+        // Lưu giá trị vào sessionStorage và thông báo cho các subscriber để hook render lại
+        // ngay khi dữ liệu thay đổi từ component hiện tại hoặc từ một component khác.
         sessionStorage.setItem(key, nextValue);
         window.dispatchEvent(new Event(SESSION_STORAGE_UPDATE_EVENT));
       } catch {

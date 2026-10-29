@@ -1,161 +1,16 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Download, Users, QrCode, ShieldCheck, Loader2 } from 'lucide-react';
-import { useRealtimeTable } from '@/hooks/useRealtimeTable';
-import { rotatePin, getCurrentPin } from '@/actions/pins';
-import { getAttendanceList } from '@/actions/checkin';
-import { getEvent } from '@/actions/events';
-import type { AttendanceRecord, EventPin, Event } from '@/types/database';
-
-const PIN_INTERVAL_SEC = 30;
+import { PIN_INTERVAL_SEC, useHostLiveSession } from '@/hooks/useHostLiveSession';
+import { useAttendanceBoard } from '@/hooks/useAttendanceBoard';
 
 function HostLiveContent() {
   const { eventId } = useParams<{ eventId: string }>();
-
-  const [event, setEvent] = useState<Event | null>(null);
-  const [pin, setPin] = useState('----');
-  const [timeLeft, setTimeLeft] = useState(PIN_INTERVAL_SEC);
-  const [logs, setLogs] = useState<AttendanceRecord[]>([]);
-  const [checkinUrl, setCheckinUrl] = useState('');
-  const [newAttendeeId, setNewAttendeeId] = useState<string | null>(null);
-
-  // ── Khởi tạo dữ liệu ban đầu ──────────────────────────────
-  useEffect(() => {
-    if (!eventId) return;
-
-    // Tạo URL cho QR Code
-    const origin = window.location.origin;
-    const url = `${origin}/checkin/${eventId}`;
-    Promise.resolve().then(() => setCheckinUrl(url));
-
-    // Load thông tin sự kiện
-    getEvent(eventId).then((data) => {
-      if (data) setEvent(data as Event);
-    });
-
-    // Load mã PIN hiện tại ngay lập tức
-    getCurrentPin(eventId).then((res) => {
-      if (res.success) {
-        setPin(res.data.pin);
-        const remaining = Math.max(1, Math.round((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000));
-        setTimeLeft(Math.min(remaining, PIN_INTERVAL_SEC));
-      }
-    });
-
-    // Load danh sách điểm danh ban đầu
-    getAttendanceList(eventId).then(setLogs);
-  }, [eventId]);
-
-  // ── Quản lý PIN & countdown ──────────────────────────────
-  const handleRotatePin = useCallback(async () => {
-    if (!eventId) return;
-    const result = await rotatePin(eventId);
-    if (result.success) {
-      setPin(result.data.pin);
-      setTimeLeft(PIN_INTERVAL_SEC);
-    }
-  }, [eventId]);
-
-  // Countdown timer – tự gọi rotatePin khi về 0
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          handleRotatePin();
-          return PIN_INTERVAL_SEC;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [handleRotatePin]);
-
-  // ── Realtime: đồng bộ PIN mới từ server ──────────────────
-  useRealtimeTable<EventPin>(
-    'event_pins',
-    `event_id=eq.${eventId}`,
-    'INSERT',
-    (payload) => {
-      if (payload.new && 'current_pin' in payload.new) {
-        setPin(payload.new.current_pin as string);
-        setTimeLeft(PIN_INTERVAL_SEC);
-      }
-    }
-  );
-
-  // ── Realtime: cập nhật danh sách điểm danh ngay lập tức ──
-  useRealtimeTable<AttendanceRecord>(
-    'attendance_records',
-    `event_id=eq.${eventId}`,
-    'INSERT',
-    (payload) => {
-      if (payload.new && 'id' in payload.new) {
-        const newRecord = payload.new as AttendanceRecord;
-        setLogs((prev) => {
-          // Tránh duplicate nếu record đã có
-          if (prev.some((r) => r.id === newRecord.id)) return prev;
-          return [newRecord, ...prev];
-        });
-        setNewAttendeeId(newRecord.id);
-        setTimeout(() => setNewAttendeeId(null), 3000);
-      }
-    }
-  );
-
-  // ── Xuất file CSV/Excel đa năng (UTF-8 BOM hỗ trợ tiếng Việt) ──
-  const handleExportExcel = () => {
-    if (logs.length === 0) {
-      alert('Chưa có dữ liệu người tham gia điểm danh để xuất.');
-      return;
-    }
-
-    const customFields = event?.custom_fields?.filter((f) => f.key !== 'full_name') ?? [];
-
-    const headers = [
-      'STT',
-      'Họ và tên',
-      ...customFields.map((f) => f.label),
-      'Thời gian điểm danh',
-      'Khoảng cách GPS (m)',
-      'Tọa độ Vĩ độ (Lat)',
-      'Tọa độ Kinh độ (Lng)',
-      'Mã thiết bị',
-    ];
-
-    const escapeCsv = (val: string | number | null | undefined) => {
-      const str = String(val ?? '');
-      return `"${str.replace(/"/g, '""')}"`;
-    };
-
-    const rows = logs.map((r, idx) => [
-      escapeCsv(idx + 1),
-      escapeCsv(r.full_name),
-      ...customFields.map((f) => escapeCsv(r.custom_data?.[f.key] ?? '')),
-      escapeCsv(new Date(r.checked_in_at).toLocaleString('vi-VN')),
-      escapeCsv(r.distance_meters !== null ? `${r.distance_meters}m` : 'Hợp lệ'),
-      escapeCsv(r.user_lat ?? ''),
-      escapeCsv(r.user_lng ?? ''),
-      escapeCsv(r.device_id ?? ''),
-    ]);
-
-    const csvContent = [
-      headers.map(escapeCsv).join(','),
-      ...rows.map((row) => row.join(',')),
-    ].join('\r\n');
-
-    // Thêm \uFEFF (UTF-8 BOM) để Excel tự nhận diện font tiếng Việt không bị lỗi font
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const cleanTitle = (event?.title || 'diem_danh').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
-    a.download = `diem_danh_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const { event, pin, timeLeft, checkinUrl, handleRotatePin } = useHostLiveSession(eventId);
+  const { logs, newAttendeeId, handleExportExcel } = useAttendanceBoard(eventId, event);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -235,18 +90,24 @@ function HostLiveContent() {
                 </span>
               </div>
 
-              {/* Thanh tiến trình Countdown */}
               <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
                 <div
                   className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-linear"
                   style={{ width: `${(timeLeft / PIN_INTERVAL_SEC) * 100}%` }}
                 />
               </div>
+
+              <button
+                type="button"
+                onClick={handleRotatePin}
+                className="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                Đổi mã PIN ngay
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Cột phải: Live Feed danh sách thời gian thực (Chiếm 7/12 cột) */}
         <div className="lg:col-span-7 flex flex-col">
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex-1 flex flex-col overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
