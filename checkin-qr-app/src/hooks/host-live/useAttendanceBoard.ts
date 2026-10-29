@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { getAttendanceList } from '@/actions/checkin';
-import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import type { AttendanceRecord, Event } from '@/types/database';
 
 export function useAttendanceBoard(eventId?: string, event?: Event | null) {

@@ -4,8 +4,8 @@ import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Download, Users, QrCode, ShieldCheck, Loader2 } from 'lucide-react';
-import { PIN_INTERVAL_SEC, useHostLiveSession } from '@/hooks/useHostLiveSession';
-import { useAttendanceBoard } from '@/hooks/useAttendanceBoard';
+import { PIN_INTERVAL_SEC, useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
+import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
 
 function HostLiveContent() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -48,8 +48,8 @@ function HostLiveContent() {
 
       {/* Main Grid: Máy chiếu & Trực tiếp */}
       <main className="max-w-7xl mx-auto p-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Cột trái: QR Code & Dynamic PIN (Chiếm 5/12 cột) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
+        {/* Cột trái: QR Code & Dynamic PIN (Chiếm một nửa màn hình) */}
+        <div className="lg:col-span-6 flex flex-col gap-6">
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex flex-col items-center text-center">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium mb-5">
               <QrCode className="w-3.5 h-3.5 text-blue-600" />
@@ -108,7 +108,7 @@ function HostLiveContent() {
           </div>
         </div>
 
-        <div className="lg:col-span-7 flex flex-col">
+        <div className="lg:col-span-6 flex flex-col">
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex-1 flex flex-col overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">

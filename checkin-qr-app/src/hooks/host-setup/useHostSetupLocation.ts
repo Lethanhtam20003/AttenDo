@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { useGeolocation } from '@/hooks/useGeolocation';
 
-const DEFAULT_COORDINATES = { lat: 10.7769, lng: 106.7009 };
+import { useGeolocation } from '@/hooks/host-setup/useGeolocation';
+
+const DEFAULT_COORDINATES = { lat: 10.64102, lng: 107.34564 };
 
 export function useHostSetupLocation() {
   const [coordinates, setCoordinates] = useState(DEFAULT_COORDINATES);

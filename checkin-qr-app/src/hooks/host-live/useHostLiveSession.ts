@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import { rotatePin, getCurrentPin } from '@/actions/pins';
 import { getEvent } from '@/actions/events';
 import type { EventPin, Event } from '@/types/database';

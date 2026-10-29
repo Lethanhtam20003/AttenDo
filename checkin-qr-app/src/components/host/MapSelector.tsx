@@ -24,58 +24,57 @@ export default function MapSelector({ lat, lng, radius, onChangeLocation }: MapS
   });
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+  if (!containerRef.current || mapRef.current) return;
 
-    // Cấu hình icon marker chuẩn từ CDN cho Leaflet
-    const icon = L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41],
-    });
+  const icon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
 
-    const map = L.map(containerRef.current).setView([lat, lng], 16);
-    mapRef.current = map;
+  const map = L.map(containerRef.current).setView([lat, lng], 16);
+  mapRef.current = map;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors',
-    }).addTo(map);
+  // Dùng Google Satellite Hybrid
+  L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    maxZoom: 20,
+    attribution: '&copy; Google Maps',
+  }).addTo(map);
 
-    const marker = L.marker([lat, lng], { draggable: true, icon }).addTo(map);
-    markerRef.current = marker;
+  const marker = L.marker([lat, lng], { draggable: true, icon }).addTo(map);
+  markerRef.current = marker;
 
-    const circle = L.circle([lat, lng], {
-      radius,
-      color: '#2563eb',
-      fillColor: '#3b82f6',
-      fillOpacity: 0.15,
-      weight: 2,
-    }).addTo(map);
-    circleRef.current = circle;
+  const circle = L.circle([lat, lng], {
+    radius,
+    color: '#2563eb',
+    fillColor: '#3b82f6',
+    fillOpacity: 0.25,
+    weight: 2,
+  }).addTo(map);
+  circleRef.current = circle;
 
-    marker.on('dragend', () => {
-      const pos = marker.getLatLng();
-      circle.setLatLng(pos);
-      onChangeLocationRef.current(pos.lat, pos.lng);
-    });
+  marker.on('dragend', () => {
+    const pos = marker.getLatLng();
+    circle.setLatLng(pos);
+    onChangeLocationRef.current(pos.lat, pos.lng);
+  });
 
-    map.on('click', (e) => {
-      marker.setLatLng(e.latlng);
-      circle.setLatLng(e.latlng);
-      onChangeLocationRef.current(e.latlng.lat, e.latlng.lng);
-    });
+  map.on('click', (e) => {
+    marker.setLatLng(e.latlng);
+    circle.setLatLng(e.latlng);
+    onChangeLocationRef.current(e.latlng.lat, e.latlng.lng);
+  });
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  return () => {
+    map.remove();
+    mapRef.current = null;
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
   // Cập nhật vị trí và bán kính khi state thay đổi
   useEffect(() => {
     if (!mapRef.current || !markerRef.current || !circleRef.current) return;
