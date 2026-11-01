@@ -18,7 +18,6 @@ export const LoginForm = () => {
       <div className="mb-6">
         <h3 className="text-xl font-bold text-slate-900">Đăng Nhập Hệ Thống</h3>
         <p className="text-xs text-slate-500 mt-1">
-          Dành cho Giảng viên, Nhân sự & Quản trị viên
         </p>
       </div>
 

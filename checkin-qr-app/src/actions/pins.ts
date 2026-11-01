@@ -1,6 +1,10 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import {
+  PIN_CLEANUP_RETENTION_SECONDS,
+  PIN_LIFETIME_SECONDS,
+} from '@/constants/checkin';
 import type { ActionResult } from '@/types/database';
 
 /**
@@ -13,8 +17,8 @@ export async function rotatePin(
   const supabase = await createClient();
 
   const pin = String(Math.floor(1000 + Math.random() * 9000));
-  const expiresAt = new Date(Date.now() + 30 * 1000).toISOString();
-  const cleanupBefore = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + PIN_LIFETIME_SECONDS * 1000).toISOString();
+  const cleanupBefore = new Date(Date.now() - PIN_CLEANUP_RETENTION_SECONDS * 1000).toISOString();
 
   // Dọn dẹp các PIN đã hết hạn quá 2 phút
   await supabase

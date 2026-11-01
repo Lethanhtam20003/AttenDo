@@ -1,3 +1,4 @@
+// Chỉ định đây là Client Component trong Next.js (code chạy ở phía trình duyệt, không phải server)
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -5,45 +6,62 @@ import { getAttendanceList } from '@/actions/checkin';
 import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import type { AttendanceRecord, Event } from '@/types/database';
 
+// Custom hook quản lý danh sách điểm danh của một sự kiện
 export function useAttendanceBoard(eventId?: string, event?: Event | null) {
+  // State lưu trữ danh sách các bản ghi điểm danh
   const [logs, setLogs] = useState<AttendanceRecord[]>([]);
+  // State lưu trữ ID của người vừa điểm danh (dùng để tạo hiệu ứng highlight mới, v.v.)
   const [newAttendeeId, setNewAttendeeId] = useState<string | null>(null);
 
+  // Hook useEffect: Chạy mỗi khi eventId thay đổi.
+  // Nhiệm vụ: Lấy danh sách điểm danh ban đầu từ server khi vừa vào trang.
   useEffect(() => {
     if (!eventId) return;
     getAttendanceList(eventId).then(setLogs);
   }, [eventId]);
 
+  // Hook lắng nghe dữ liệu theo thời gian thực (real-time) từ database
   useRealtimeTable<AttendanceRecord & Record<string, unknown>>(
-    'attendance_records',
-    `event_id=eq.${eventId}`,
-    'INSERT',
+    'attendance_records',       // Tên bảng cần lắng nghe
+    `event_id=eq.${eventId}`,   // Điều kiện: chỉ lắng nghe dữ liệu của sự kiện hiện tại
+    'INSERT',                   // Chỉ bắt sự kiện thêm mới (INSERT)
     (payload) => {
+      // Khi có người mới điểm danh thành công
       if (payload.new && 'id' in payload.new) {
         const newRecord = payload.new as AttendanceRecord;
+        
+        // Cập nhật lại danh sách điểm danh (logs)
         setLogs((prev) => {
+          // Tránh bị trùng lặp nếu bản ghi đã tồn tại trong danh sách
           if (prev.some((r) => r.id === newRecord.id)) return prev;
+          // Thêm người mới vào đầu danh sách
           return [newRecord, ...prev];
         });
 
+        // Đánh dấu ID người mới điểm danh và tự động xóa đánh dấu sau 3 giây
         setNewAttendeeId(newRecord.id);
         setTimeout(() => setNewAttendeeId(null), 3000);
       }
     }
   );
 
+  // Hàm xử lý xuất danh sách điểm danh ra file Excel (.csv)
+  // Dùng useCallback để tránh render lại hàm này không cần thiết (tối ưu hiệu suất)
   const handleExportExcel = useCallback(() => {
+    // Nếu chưa có ai điểm danh thì báo lỗi và dừng lại
     if (logs.length === 0) {
       alert('Chưa có dữ liệu người tham gia điểm danh để xuất.');
       return;
     }
 
+    // Lấy ra các trường thông tin tùy chỉnh (custom fields) của sự kiện, loại bỏ trường 'full_name' vì đã có sẵn
     const customFields = event?.custom_fields?.filter((f) => f.key !== 'full_name') ?? [];
 
+    // Tạo mảng chứa các tiêu đề cột cho file Excel
     const headers = [
       'STT',
       'Họ và tên',
-      ...customFields.map((f) => f.label),
+      ...customFields.map((f) => f.label), // Thêm các cột custom field
       'Thời gian điểm danh',
       'Khoảng cách GPS (m)',
       'Tọa độ Vĩ độ (Lat)',
@@ -51,36 +69,52 @@ export function useAttendanceBoard(eventId?: string, event?: Event | null) {
       'Mã thiết bị',
     ];
 
+    // Hàm phụ: Xử lý chuỗi để không bị lỗi định dạng khi xuất CSV (ví dụ: chuỗi có chứa dấu phẩy hoặc ngoặc kép)
     const escapeCsv = (val: string | number | null | undefined) => {
       const str = String(val ?? '');
       return `"${str.replace(/"/g, '""')}"`;
     };
 
+    // Chuẩn bị dữ liệu từng hàng (row) tương ứng với từng người tham gia
     const rows = logs.map((r, idx) => [
-      escapeCsv(idx + 1),
+      escapeCsv(idx + 1), // Số thứ tự
       escapeCsv(r.full_name),
-      ...customFields.map((f) => escapeCsv(r.custom_data?.[f.key] ?? '')),
-      escapeCsv(new Date(r.checked_in_at).toLocaleString('vi-VN')),
-      escapeCsv(r.distance_meters !== null ? `${r.distance_meters}m` : 'Hợp lệ'),
+      ...customFields.map((f) => escapeCsv(r.custom_data?.[f.key] ?? '')), // Dữ liệu của các trường tùy chỉnh
+      escapeCsv(new Date(r.checked_in_at).toLocaleString('vi-VN')), // Format thời gian theo chuẩn Việt Nam
+      escapeCsv(r.distance_meters !== null ? `${r.distance_meters}m` : 'Hợp lệ'), // Xử lý hiển thị khoảng cách
       escapeCsv(r.user_lat ?? ''),
       escapeCsv(r.user_lng ?? ''),
       escapeCsv(r.device_id ?? ''),
     ]);
 
+    // Gộp tiêu đề và các hàng dữ liệu lại thành một chuỗi duy nhất, cách nhau bởi dấu phẩy và xuống dòng
     const csvContent = [
       headers.map(escapeCsv).join(','),
       ...rows.map((row) => row.join(',')),
     ].join('\r\n');
 
+    // Tạo đối tượng Blob từ chuỗi CSV
+    // \uFEFF là Byte Order Mark (BOM) giúp Excel nhận diện đúng font chữ tiếng Việt (UTF-8)
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Tạo link ảo để tải file
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
+    
+    // Xử lý làm sạch tên file, loại bỏ các ký tự đặc biệt
     const cleanTitle = (event?.title || 'diem_danh').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+    
+    // Đặt tên file tự động (ví dụ: diem_danh_TieuDe_2023-10-30.csv)
     a.download = `diem_danh_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.csv`;
+    
+    // Kích hoạt việc tải xuống
     a.click();
+    
+    // Thu hồi link ảo để giải phóng bộ nhớ
     URL.revokeObjectURL(url);
-  }, [event, logs]);
+  }, [event, logs]); // Hàm này sẽ cập nhật lại nếu event hoặc danh sách logs thay đổi
 
+  // Trả ra các state và hàm để component gọi hook này có thể sử dụng được
   return { logs, newAttendeeId, handleExportExcel };
 }

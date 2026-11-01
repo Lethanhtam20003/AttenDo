@@ -1,17 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { startTransition, useCallback, useEffect, useState } from 'react';
 import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import { rotatePin, getCurrentPin } from '@/actions/pins';
 import { getEvent } from '@/actions/events';
+import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
 import type { EventPin, Event } from '@/types/database';
-
-export const PIN_INTERVAL_SEC = 30;
 
 export function useHostLiveSession(eventId?: string) {
   const [event, setEvent] = useState<Event | null>(null);
   const [pin, setPin] = useState('----');
-  const [timeLeft, setTimeLeft] = useState(PIN_INTERVAL_SEC);
+  const [timeLeft, setTimeLeft] = useState(PIN_LIFETIME_SECONDS);
   const [checkinUrl, setCheckinUrl] = useState('');
 
   useEffect(() => {
@@ -30,29 +29,29 @@ export function useHostLiveSession(eventId?: string) {
           1,
           Math.round((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000)
         );
-        setTimeLeft(Math.min(remaining, PIN_INTERVAL_SEC));
+        setTimeLeft(Math.min(remaining, PIN_LIFETIME_SECONDS));
       }
     });
   }, [eventId]);
 
   const handleRotatePin = useCallback(async () => {
     if (!eventId) return;
-
-    const result = await rotatePin(eventId);
-    if (result.success) {
-      setPin(result.data.pin);
-      setTimeLeft(PIN_INTERVAL_SEC);
-    }
+   startTransition(async () => {
+      const res = await rotatePin(eventId);
+      if (res.success && res.data) {
+        setPin(res.data.pin);
+        setTimeLeft(PIN_LIFETIME_SECONDS);
+      }
+    });
   }, [eventId]);
 
   useEffect(() => {
     if (!eventId) return;
-
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           handleRotatePin();
-          return PIN_INTERVAL_SEC;
+          return PIN_LIFETIME_SECONDS;
         }
         return prev - 1;
       });
@@ -68,7 +67,7 @@ export function useHostLiveSession(eventId?: string) {
     (payload) => {
       if (payload.new && 'current_pin' in payload.new) {
         setPin(payload.new.current_pin as string);
-        setTimeLeft(PIN_INTERVAL_SEC);
+        setTimeLeft(PIN_LIFETIME_SECONDS);
       }
     }
   );

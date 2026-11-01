@@ -4,7 +4,8 @@ import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Download, Users, QrCode, ShieldCheck, Loader2 } from 'lucide-react';
-import { PIN_INTERVAL_SEC, useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
+import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
+import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
 
 function HostLiveContent() {
@@ -30,10 +31,10 @@ function HostLiveContent() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold">
+            {/* <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Supabase Realtime Live
-            </span>
+            </span> */}
             <button
               type="button"
               onClick={handleExportExcel}
@@ -42,15 +43,22 @@ function HostLiveContent() {
               <Download className="w-3.5 h-3.5" />
               Xuất file (.csv / Excel)
             </button>
+            <button
+              type="button"
+              onClick={() => alert('Đã kết thúc điểm danh.')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+            >
+              Kết thúc điểm danh
+            </button>
           </div>
         </div>
       </header>
 
       {/* Main Grid: Máy chiếu & Trực tiếp */}
-      <main className="max-w-7xl mx-auto p-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="max-w-7xl mx-auto p-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 items-stretch gap-6">
         {/* Cột trái: QR Code & Dynamic PIN (Chiếm một nửa màn hình) */}
-        <div className="lg:col-span-6 flex flex-col gap-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex flex-col items-center text-center">
+        <div className="lg:col-span-6 flex flex-col">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex-1 flex flex-col items-center text-center">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium mb-5">
               <QrCode className="w-3.5 h-3.5 text-blue-600" />
               Quét mã bằng camera điện thoại
@@ -93,7 +101,7 @@ function HostLiveContent() {
               <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
                 <div
                   className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${(timeLeft / PIN_INTERVAL_SEC) * 100}%` }}
+                  style={{ width: `${(timeLeft / PIN_LIFETIME_SECONDS) * 100}%` }}
                 />
               </div>
 

@@ -1,6 +1,11 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import {
+  DEFAULT_CHECKIN_RADIUS_METERS,
+  EARTH_RADIUS_METERS,
+  PIN_GRACE_PERIOD_SECONDS,
+} from '@/constants/checkin';
 import type { ActionResult, AttendanceRecord } from '@/types/database';
 
 /** Công thức Haversine tính khoảng cách giữa 2 tọa độ (mét) */
@@ -10,14 +15,13 @@ function haversineDistance(
   lat2: number,
   lng2: number
 ): number {
-  const R = 6371000; // bán kính Trái đất (m)
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return EARTH_RADIUS_METERS * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 interface CheckInInput {
@@ -29,7 +33,7 @@ interface CheckInInput {
   pinInput: string;
   deviceId: string;
 }
-
+/** Kiểm tra điểm danh */
 export async function checkIn(
   input: CheckInInput
 ): Promise<ActionResult<Pick<AttendanceRecord, 'id' | 'checked_in_at' | 'distance_meters'>>> {
@@ -58,7 +62,7 @@ export async function checkIn(
       input.userLat,
       input.userLng
     );
-    if (distance > (event.radius_meters || 100)) {
+    if (distance > (event.radius_meters || DEFAULT_CHECKIN_RADIUS_METERS)) {
       return {
         success: false,
         error: `Bạn đang ở ngoài vùng điểm danh (cách ${Math.round(distance)}m, bán kính cho phép ${event.radius_meters}m). Hãy di chuyển lại gần vị trí tổ chức.`,
@@ -83,7 +87,7 @@ export async function checkIn(
     if (p.current_pin !== input.pinInput.trim()) return false;
     const expiryTime = new Date(p.expires_at).getTime();
     // Chấp nhận nếu chưa hết hạn hoặc vừa hết hạn trong vòng 15 giây
-    return now <= expiryTime + 15 * 1000;
+    return now <= expiryTime + PIN_GRACE_PERIOD_SECONDS * 1000;
   });
 
   if (!validPin) {

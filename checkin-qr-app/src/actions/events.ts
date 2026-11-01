@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
 import type { ActionResult, CustomFieldConfig } from '@/types/database';
 
 interface CreateEventInput {
@@ -41,7 +42,7 @@ export async function createEvent(
 
   // 2. Tạo PIN đầu tiên
   const pin = String(Math.floor(1000 + Math.random() * 9000));
-  const expiresAt = new Date(Date.now() + 30 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + PIN_LIFETIME_SECONDS * 1000).toISOString();
 
   const { error: pinError } = await supabase
     .from('event_pins')
@@ -69,4 +70,3 @@ export async function getEvent(eventId: string) {
   if (error) return null;
   return data;
 }
-
