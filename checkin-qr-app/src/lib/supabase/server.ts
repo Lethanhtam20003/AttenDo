@@ -35,3 +35,31 @@ export async function createClient() {
     }
   );
 }
+
+export async function getUserSession() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (
+    error &&
+    error.name !== 'AuthSessionMissingError' &&
+    error.status !== 401
+  ) {
+    throw new Error(`Unable to verify authenticated user: ${error.message}`);
+  }
+
+  return user;
+}
+
+export async function verifyAuth() {
+  const user = await getUserSession();
+
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  return user;
+}

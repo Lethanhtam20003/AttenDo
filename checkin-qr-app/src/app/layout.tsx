@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
@@ -13,7 +14,16 @@ export default function RootLayout({ children } : LayoutProps<"/">) {
   return (
     <html lang="vi">
       <body className={`${inter.className} flex min-h-screen flex-col`}>
-        <Header />
+        <Suspense
+          fallback={
+            <div
+              className="h-16 border-b border-slate-200/80 bg-white/80"
+              aria-hidden="true"
+            />
+          }
+        >
+          <Header />
+        </Suspense>
         <main className="flex-1">{children}</main>
         <Footer />
       </body>
