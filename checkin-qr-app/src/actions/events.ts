@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, verifyAuth } from '@/lib/supabase/server';
 import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
 import type { ActionResult, CustomFieldConfig } from '@/types/database';
 
@@ -19,12 +19,14 @@ interface CreateEventInput {
 export async function createEvent(
   input: CreateEventInput
 ): Promise<ActionResult<{ eventId: string; pin: string }>> {
+  const user = await verifyAuth();
   const supabase = await createClient();
 
   // 1. Tạo sự kiện
   const { data: event, error: eventError } = await supabase
     .from('events')
     .insert({
+      created_by: user.id,
       title: input.title,
       status: 'active',
       location_lat: input.location_lat,
@@ -53,6 +55,33 @@ export async function createEvent(
   }
 
   return { success: true, data: { eventId: event.id, pin } };
+}
+
+export async function endEvent(eventId: string): Promise<ActionResult<{ eventId: string }>> {
+  const user = await verifyAuth();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('events')
+    .update({ status: 'closed', created_by: user.id })
+    .eq('id', eventId)
+    .eq('status', 'active')
+    .or(`created_by.eq.${user.id},created_by.is.null`)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    return { success: false, error: 'Không thể kết thúc phiên điểm danh. Vui lòng thử lại.' };
+  }
+
+  if (!data) {
+    return {
+      success: false,
+      error: 'Không tìm thấy phiên đang mở hoặc bạn không có quyền kết thúc phiên này.',
+    };
+  }
+
+  return { success: true, data: { eventId: data.id } };
 }
 
 /**

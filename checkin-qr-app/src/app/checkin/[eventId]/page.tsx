@@ -96,6 +96,20 @@ function AttendeeCheckinContent() {
     );
   }
 
+  if (event.status === 'closed') {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 text-center max-w-sm">
+          <ShieldAlert className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+          <h2 className="text-base font-bold text-slate-900">Phiên điểm danh đã kết thúc</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Host đã đóng phiên này. Bạn không thể gửi thêm lượt điểm danh.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   const dynamicFields = event.custom_fields.filter((f) => f.key !== 'full_name');
 
   return (

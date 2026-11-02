@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, verifyAuth } from '@/lib/supabase/server';
 import {
   PIN_CLEANUP_RETENTION_SECONDS,
   PIN_LIFETIME_SECONDS,
@@ -14,18 +14,33 @@ import type { ActionResult } from '@/types/database';
 export async function rotatePin(
   eventId: string
 ): Promise<ActionResult<{ pin: string; expiresAt: string }>> {
+  await verifyAuth();
   const supabase = await createClient();
+
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('status')
+    .eq('id', eventId)
+    .maybeSingle();
+
+  if (eventError) return { success: false, error: eventError.message };
+  if (!event) return { success: false, error: 'Không tìm thấy phiên điểm danh.' };
+  if (event.status !== 'active') {
+    return { success: false, error: 'Phiên điểm danh đã kết thúc.' };
+  }
 
   const pin = String(Math.floor(1000 + Math.random() * 9000));
   const expiresAt = new Date(Date.now() + PIN_LIFETIME_SECONDS * 1000).toISOString();
   const cleanupBefore = new Date(Date.now() - PIN_CLEANUP_RETENTION_SECONDS * 1000).toISOString();
 
   // Dọn dẹp các PIN đã hết hạn quá 2 phút
-  await supabase
+  const { error: cleanupError } = await supabase
     .from('event_pins')
     .delete()
     .eq('event_id', eventId)
     .lt('expires_at', cleanupBefore);
+
+  if (cleanupError) return { success: false, error: cleanupError.message };
 
   const { error } = await supabase
     .from('event_pins')
@@ -42,7 +57,20 @@ export async function rotatePin(
 export async function getCurrentPin(
   eventId: string
 ): Promise<ActionResult<{ pin: string; expiresAt: string }>> {
+  await verifyAuth();
   const supabase = await createClient();
+
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('status')
+    .eq('id', eventId)
+    .maybeSingle();
+
+  if (eventError) return { success: false, error: eventError.message };
+  if (!event) return { success: false, error: 'Không tìm thấy phiên điểm danh.' };
+  if (event.status !== 'active') {
+    return { success: false, error: 'Phiên điểm danh đã kết thúc.' };
+  }
 
   const { data, error } = await supabase
     .from('event_pins')
@@ -52,7 +80,9 @@ export async function getCurrentPin(
     .limit(1)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) return { success: false, error: error.message };
+
+  if (!data) {
     // Nếu chưa có PIN nào, tự động tạo mới
     return rotatePin(eventId);
   }

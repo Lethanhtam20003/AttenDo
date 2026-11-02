@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { LogOut, UserCheck } from "lucide-react";
+import { connection } from "next/server";
 import { logout } from "@/actions/auth";
 import { getUserSession } from "@/lib/supabase/server";
 
 export default async function Header() {
+  await connection();
   const user = await getUserSession();
 
   return (

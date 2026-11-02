@@ -19,6 +19,7 @@ export interface ModuleSettings {
 // ── events ──────────────────────────────────────────────────
 export interface Event {
   id: string;
+  created_by: string | null;
   title: string;
   created_at: string;
   status: 'draft' | 'active' | 'closed';
@@ -61,4 +62,3 @@ export type AttendanceRecordInsert = Omit<AttendanceRecord, 'id' | 'checked_in_a
 export type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
-

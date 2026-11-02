@@ -1,17 +1,27 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Download, Users, QrCode, ShieldCheck, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, Loader2, QrCode, ShieldCheck, Users, X } from 'lucide-react';
 import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
 import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
 
 function HostLiveContent() {
   const { eventId } = useParams<{ eventId: string }>();
-  const { event, pin, timeLeft, checkinUrl, handleRotatePin } = useHostLiveSession(eventId);
+  const {
+    event,
+    pin,
+    timeLeft,
+    checkinUrl,
+    handleRotatePin,
+    handleEndEvent,
+    isEnding,
+    endError,
+  } = useHostLiveSession(eventId);
   const { logs, newAttendeeId, handleExportExcel } = useAttendanceBoard(eventId, event);
+  const [showEndConfirmation, setShowEndConfirmation] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -43,22 +53,101 @@ function HostLiveContent() {
               <Download className="w-3.5 h-3.5" />
               Xuất file (.csv / Excel)
             </button>
-            <button
-              type="button"
-              onClick={() => alert('Đã kết thúc điểm danh.')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
-            >
-              Kết thúc điểm danh
-            </button>
+            {event?.status === 'closed' ? (
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700">
+                <CheckCircle2 className="h-4 w-4" />
+                Đã kết thúc
+              </span>
+            ) : event?.status === 'active' ? (
+              <button
+                type="button"
+                onClick={() => setShowEndConfirmation(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              >
+                Kết thúc điểm danh
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
+
+      {showEndConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="end-event-title"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 id="end-event-title" className="text-lg font-bold text-slate-900">
+                  Kết thúc phiên điểm danh?
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  Người tham gia sẽ không thể check-in tiếp. Danh sách hiện có vẫn được giữ lại để xem và xuất file.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Đóng hộp thoại"
+                onClick={() => setShowEndConfirmation(false)}
+                disabled={isEnding}
+                className="ml-auto rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {endError && (
+              <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
+                {endError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowEndConfirmation(false)}
+                disabled={isEnding}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (await handleEndEvent()) setShowEndConfirmation(false);
+                }}
+                disabled={isEnding}
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isEnding && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isEnding ? 'Đang kết thúc...' : 'Xác nhận kết thúc'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Main Grid: Máy chiếu & Trực tiếp */}
       <main className="max-w-7xl mx-auto p-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 items-stretch gap-6">
         {/* Cột trái: QR Code & Dynamic PIN (Chiếm một nửa màn hình) */}
         <div className="lg:col-span-6 flex flex-col">
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex-1 flex flex-col items-center text-center">
+            {event?.status === 'closed' ? (
+              <div className="flex flex-1 flex-col items-center justify-center py-12">
+                <CheckCircle2 className="h-12 w-12 text-emerald-600" />
+                <h2 className="mt-4 text-lg font-bold text-slate-900">Đã kết thúc điểm danh</h2>
+                <p className="mt-2 max-w-sm text-sm text-slate-500">
+                  Mã QR và PIN đã bị vô hiệu hóa. Danh sách điểm danh vẫn được lưu để xem hoặc xuất file.
+                </p>
+              </div>
+            ) : (
+              <>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium mb-5">
               <QrCode className="w-3.5 h-3.5 text-blue-600" />
               Quét mã bằng camera điện thoại
@@ -113,6 +202,8 @@ function HostLiveContent() {
                 Đổi mã PIN ngay
               </button>
             </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -132,7 +223,11 @@ function HostLiveContent() {
               {logs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 text-slate-400 text-sm gap-2">
                   <Users className="w-8 h-8 opacity-30" />
-                  <p>Chưa có ai điểm danh. Đang chờ người tham gia quét mã...</p>
+                  <p>
+                    {event?.status === 'closed'
+                      ? 'Phiên đã kết thúc và chưa có lượt điểm danh nào.'
+                      : 'Chưa có ai điểm danh. Đang chờ người tham gia quét mã...'}
+                  </p>
                 </div>
               ) : (
                 logs.map((item) => {

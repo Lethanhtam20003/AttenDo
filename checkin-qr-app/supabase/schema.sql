@@ -1,11 +1,13 @@
 -- =====================================================
 -- AttenDo – Database Schema Migration
 -- Chạy trong Supabase Dashboard > SQL Editor
+-- Database đã khởi tạo: chạy supabase/migrations/202611020001_close_attendance.sql
 -- =====================================================
 
 -- 1. BẢNG SỰ KIỆN / PHIÊN HỌP
 CREATE TABLE IF NOT EXISTS events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   title VARCHAR(255) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   status VARCHAR(50) DEFAULT 'active', -- 'draft' | 'active' | 'closed'
@@ -22,6 +24,8 @@ CREATE TABLE IF NOT EXISTS events (
   -- Ví dụ: [{"key":"phone","label":"Số điện thoại","type":"tel","required":true}]
   custom_fields JSONB DEFAULT '[]'
 );
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 
 -- 2. BẢNG MÃ PIN ĐỘNG
 CREATE TABLE IF NOT EXISTS event_pins (
@@ -61,47 +65,133 @@ ALTER TABLE events            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_pins        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
 
--- Cho phép anon đọc events đang active
-CREATE POLICY "Public can read active events"
+DROP POLICY IF EXISTS "Public can read active events" ON events;
+DROP POLICY IF EXISTS "Public can read active or closed events" ON events;
+CREATE POLICY "Public can read active or closed events"
   ON events FOR SELECT
-  USING (status = 'active');
+  USING (
+    status IN ('active', 'closed')
+    OR (auth.uid() IS NOT NULL AND created_by = auth.uid())
+  );
 
--- Cho phép anon tạo events (Host chưa đăng nhập)
-CREATE POLICY "Anyone can create events"
-  ON events FOR INSERT
-  WITH CHECK (true);
+DROP POLICY IF EXISTS "Anyone can create events" ON events;
+DROP POLICY IF EXISTS "Authenticated users can create owned events" ON events;
+CREATE POLICY "Authenticated users can create owned events"
+  ON events FOR INSERT TO authenticated
+  WITH CHECK (created_by = auth.uid());
 
--- Cho phép anon đọc PIN (để màn hình Live hiển thị)
-CREATE POLICY "Public can read pins"
+DROP POLICY IF EXISTS "Owners can close events" ON events;
+CREATE POLICY "Owners can close events"
+  ON events FOR UPDATE TO authenticated
+  USING (
+    status = 'active'
+    AND (created_by = auth.uid() OR created_by IS NULL)
+  )
+  WITH CHECK (status = 'closed' AND created_by = auth.uid());
+
+DROP POLICY IF EXISTS "Anyone can insert pins" ON event_pins;
+DROP POLICY IF EXISTS "Owners can insert pins for active events" ON event_pins;
+CREATE POLICY "Owners can insert pins for active events"
+  ON event_pins FOR INSERT TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM events
+      WHERE events.id = event_pins.event_id
+        AND events.status = 'active'
+        AND (events.created_by = auth.uid() OR events.created_by IS NULL)
+    )
+  );
+
+DROP POLICY IF EXISTS "Anyone can delete pins" ON event_pins;
+DROP POLICY IF EXISTS "Owners can delete pins for active events" ON event_pins;
+CREATE POLICY "Owners can delete pins for active events"
+  ON event_pins FOR DELETE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM events
+      WHERE events.id = event_pins.event_id
+        AND events.status = 'active'
+        AND (events.created_by = auth.uid() OR events.created_by IS NULL)
+    )
+  );
+
+DROP POLICY IF EXISTS "Anyone can check in" ON attendance_records;
+DROP POLICY IF EXISTS "Anyone can check in to active events" ON attendance_records;
+CREATE POLICY "Anyone can check in to active events"
+  ON attendance_records FOR INSERT TO anon, authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM events
+      WHERE events.id = attendance_records.event_id
+        AND events.status = 'active'
+    )
+  );
+
+CREATE OR REPLACE FUNCTION public.ensure_event_is_active()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  event_status TEXT;
+BEGIN
+  SELECT status INTO event_status
+  FROM public.events
+  WHERE id = NEW.event_id
+  FOR UPDATE;
+
+  IF event_status IS DISTINCT FROM 'active' THEN
+    RAISE EXCEPTION 'Event is not active'
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS ensure_active_event_pin ON event_pins;
+CREATE TRIGGER ensure_active_event_pin
+  BEFORE INSERT ON event_pins
+  FOR EACH ROW EXECUTE FUNCTION public.ensure_event_is_active();
+
+DROP TRIGGER IF EXISTS ensure_active_event_checkin ON attendance_records;
+CREATE TRIGGER ensure_active_event_checkin
+  BEFORE INSERT ON attendance_records
+  FOR EACH ROW EXECUTE FUNCTION public.ensure_event_is_active();
+
+DROP POLICY IF EXISTS "Public can read pins" ON event_pins;
+DROP POLICY IF EXISTS "Public can read pins for active events" ON event_pins;
+CREATE POLICY "Public can read pins for active events"
   ON event_pins FOR SELECT
-  USING (true);
-
--- Cho phép anon tạo PIN (Server Action)
-CREATE POLICY "Anyone can insert pins"
-  ON event_pins FOR INSERT
-  WITH CHECK (true);
-
--- Cho phép anon xóa PIN cũ (khi rotate)
-CREATE POLICY "Anyone can delete pins"
-  ON event_pins FOR DELETE
-  USING (true);
+  USING (
+    EXISTS (
+      SELECT 1 FROM events
+      WHERE events.id = event_pins.event_id
+        AND events.status = 'active'
+    )
+  );
 
 -- Cho phép anon đọc danh sách điểm danh
 CREATE POLICY "Public can read attendance"
   ON attendance_records FOR SELECT
   USING (true);
 
--- Cho phép anon ghi điểm danh
-CREATE POLICY "Anyone can check in"
-  ON attendance_records FOR INSERT
-  WITH CHECK (true);
-
 -- ── Bật Supabase Realtime ─────────────────────────────────────
--- Thực hiện trong Supabase Dashboard:
---   Database > Replication > Tables > Bật toggle cho:
---     • event_pins
---     • attendance_records
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'events'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.events;
+  END IF;
+END;
+$$;
+
 -- Hoặc chạy lệnh sau (nếu dùng supabase CLI):
 -- ALTER PUBLICATION supabase_realtime ADD TABLE event_pins;
 -- ALTER PUBLICATION supabase_realtime ADD TABLE attendance_records;
-

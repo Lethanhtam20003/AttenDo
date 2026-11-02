@@ -3,7 +3,7 @@
 import { startTransition, useCallback, useEffect, useState } from 'react';
 import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import { rotatePin, getCurrentPin } from '@/actions/pins';
-import { getEvent } from '@/actions/events';
+import { endEvent, getEvent } from '@/actions/events';
 import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
 import type { EventPin, Event } from '@/types/database';
 
@@ -12,6 +12,8 @@ export function useHostLiveSession(eventId?: string) {
   const [pin, setPin] = useState('----');
   const [timeLeft, setTimeLeft] = useState(PIN_LIFETIME_SECONDS);
   const [checkinUrl, setCheckinUrl] = useState('');
+  const [isEnding, setIsEnding] = useState(false);
+  const [endError, setEndError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!eventId) return;
@@ -35,18 +37,40 @@ export function useHostLiveSession(eventId?: string) {
   }, [eventId]);
 
   const handleRotatePin = useCallback(async () => {
-    if (!eventId) return;
-   startTransition(async () => {
+    if (!eventId || event?.status !== 'active') return;
+    startTransition(async () => {
       const res = await rotatePin(eventId);
       if (res.success && res.data) {
         setPin(res.data.pin);
         setTimeLeft(PIN_LIFETIME_SECONDS);
       }
     });
-  }, [eventId]);
+  }, [event?.status, eventId]);
+
+  const handleEndEvent = useCallback(async () => {
+    if (!eventId || event?.status !== 'active' || isEnding) return false;
+
+    setIsEnding(true);
+    setEndError(null);
+    try {
+      const result = await endEvent(eventId);
+      if (!result.success) {
+        setEndError(result.error);
+        return false;
+      }
+
+      setEvent((current) => current && { ...current, status: 'closed' });
+      return true;
+    } catch (error) {
+      setEndError(error instanceof Error ? error.message : 'Không thể kết thúc phiên điểm danh.');
+      return false;
+    } finally {
+      setIsEnding(false);
+    }
+  }, [event?.status, eventId, isEnding]);
 
   useEffect(() => {
-    if (!eventId) return;
+    if (!eventId || event?.status !== 'active') return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -58,19 +82,39 @@ export function useHostLiveSession(eventId?: string) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [eventId, handleRotatePin]);
+  }, [event?.status, eventId, handleRotatePin]);
+
+  useRealtimeTable<Event & Record<string, unknown>>(
+    'events',
+    `id=eq.${eventId}`,
+    'UPDATE',
+    (payload) => {
+      if (payload.new && 'status' in payload.new) {
+        setEvent(payload.new as Event & Record<string, unknown>);
+      }
+    }
+  );
 
   useRealtimeTable<EventPin & Record<string, unknown>>(
     'event_pins',
     `event_id=eq.${eventId}`,
     'INSERT',
     (payload) => {
-      if (payload.new && 'current_pin' in payload.new) {
+      if (event?.status === 'active' && payload.new && 'current_pin' in payload.new) {
         setPin(payload.new.current_pin as string);
         setTimeLeft(PIN_LIFETIME_SECONDS);
       }
     }
   );
 
-  return { event, pin, timeLeft, checkinUrl, handleRotatePin };
+  return {
+    event,
+    pin,
+    timeLeft,
+    checkinUrl,
+    handleRotatePin,
+    handleEndEvent,
+    isEnding,
+    endError,
+  };
 }
