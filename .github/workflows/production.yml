@@ -1,14 +1,41 @@
 name: Deploy Production DB
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-database-migrations
+  cancel-in-progress: false
+
 jobs:
   deploy-database:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: checkin-qr-app
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
+      - name: Initialize Supabase project
+        run: supabase init
+      - name: Link production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
       - name: Push DB Migrations
         run: supabase db push
         env:

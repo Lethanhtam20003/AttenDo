@@ -2,20 +2,36 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: checkin-qr-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: latest
+          bun-version: 1.3.12
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
       - name: Run Linter
         run: bun run lint
       - name: Type Check
         run: bun x tsc --noEmit
-      - name: Test Build
-        run: bun run build
+      - name: Build
+        run: node node_modules/next/dist/bin/next build
