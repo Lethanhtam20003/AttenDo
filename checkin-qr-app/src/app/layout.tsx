@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
@@ -11,7 +12,7 @@ export const metadata = {
   description: 'Mô tả chung cho SEO',
 };
 
-export default function RootLayout({ children } : LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="vi">
       <body className={`${inter.className} flex min-h-screen flex-col`}>
