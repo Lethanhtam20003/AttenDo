@@ -1,7 +1,7 @@
 -- =====================================================
 -- AttenDo – Database Schema Migration
 -- Chạy trong Supabase Dashboard > SQL Editor
--- Database đã khởi tạo: chạy supabase/migrations/202611020001_close_attendance.sql
+-- Sau đó áp dụng tất cả file trong supabase/migrations theo thứ tự thời gian.
 -- =====================================================
 
 -- 1. BẢNG SỰ KIỆN / PHIÊN HỌP
@@ -162,15 +162,18 @@ CREATE TRIGGER ensure_active_event_checkin
 
 DROP POLICY IF EXISTS "Public can read pins" ON event_pins;
 DROP POLICY IF EXISTS "Public can read pins for active events" ON event_pins;
-CREATE POLICY "Public can read pins for active events"
-  ON event_pins FOR SELECT
+DROP POLICY IF EXISTS "Owners can read pins for active events" ON event_pins;
+CREATE POLICY "Owners can read pins for active events"
+  ON event_pins FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM events
       WHERE events.id = event_pins.event_id
         AND events.status = 'active'
+        AND (events.created_by = auth.uid() OR events.created_by IS NULL)
     )
   );
+REVOKE SELECT ON TABLE event_pins FROM anon;
 
 -- Cho phép anon đọc danh sách điểm danh
 CREATE POLICY "Public can read attendance"

@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import { AlertTriangle, CheckCircle2, Download, Loader2, QrCode, ShieldCheck, Users, X } from 'lucide-react';
 import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
-import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
+import { PIN_LIFETIME_SECONDS, QR_TOKEN_LIFETIME_SECONDS } from '@/constants/checkin';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
 
 function HostLiveContent() {
@@ -15,6 +15,8 @@ function HostLiveContent() {
     pin,
     timeLeft,
     checkinUrl,
+    qrTimeLeft,
+    qrError,
     handleRotatePin,
     handleEndEvent,
     isEnding,
@@ -170,38 +172,51 @@ function HostLiveContent() {
               )}
             </div>
             {checkinUrl && (
-              <p className="text-[11px] text-slate-400 font-mono break-all px-2 select-all">
-                {checkinUrl}
+              event?.module_settings?.dynamic_qr === true ? (
+                <p className="text-xs text-slate-500">
+                  Mã QR có hiệu lực {QR_TOKEN_LIFETIME_SECONDS} giây · tự làm mới sau {qrTimeLeft}s
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-400 font-mono break-all px-2 select-all">
+                  {checkinUrl}
+                </p>
+              )
+            )}
+            {qrError && (
+              <p role="alert" className="mt-2 text-xs text-rose-600">
+                {qrError}
               </p>
             )}
 
             {/* Dynamic PIN ngẫu nhiên */}
-            <div className="w-full mt-4 pt-5 border-t border-slate-100 flex flex-col items-center">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                Mã xác nhận bảo mật (Đổi sau {timeLeft}s)
-              </span>
-
-              <div className="w-full bg-slate-50 border border-slate-200/80 px-6 py-4 rounded-xl flex items-center justify-center">
-                <span className="font-mono text-5xl font-black tracking-widest text-slate-900">
-                  {pin}
+            {event?.module_settings?.require_pin !== false && (
+              <div className="w-full mt-4 pt-5 border-t border-slate-100 flex flex-col items-center">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  Mã xác nhận bảo mật (Đổi sau {timeLeft}s)
                 </span>
-              </div>
 
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                <div
-                  className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${(timeLeft / PIN_LIFETIME_SECONDS) * 100}%` }}
-                />
-              </div>
+                <div className="w-full bg-slate-50 border border-slate-200/80 px-6 py-4 rounded-xl flex items-center justify-center">
+                  <span className="font-mono text-5xl font-black tracking-widest text-slate-900">
+                    {pin}
+                  </span>
+                </div>
 
-              <button
-                type="button"
-                onClick={handleRotatePin}
-                className="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
-              >
-                Đổi mã PIN ngay
-              </button>
-            </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div
+                    className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-linear"
+                    style={{ width: `${(timeLeft / PIN_LIFETIME_SECONDS) * 100}%` }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRotatePin}
+                  className="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  Đổi mã PIN ngay
+                </button>
+              </div>
+            )}
               </>
             )}
           </div>

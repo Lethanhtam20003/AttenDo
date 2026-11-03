@@ -49,6 +49,17 @@ export function useCheckinLocation(event: Event | null) {
   }, []);
 
   useEffect(() => {
+    if (!event) return;
+
+    if (event.module_settings?.require_location === false) {
+      const timer = setTimeout(() => {
+        setGpsReady(true);
+        setCoords(null);
+        setGpsError(null);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       const timer = setTimeout(() => {
         setGpsError('Trình duyệt của bạn không hỗ trợ định vị GPS.');
@@ -59,7 +70,7 @@ export function useCheckinLocation(event: Event | null) {
     // Tự lấy vị trí khi mở trang; setTimeout để tránh cập nhật state đồng bộ trong effect.
     const timer = setTimeout(requestLocation, 0);
     return () => clearTimeout(timer);
-  }, [requestLocation]);
+  }, [event, requestLocation]);
 
   // Khoảng cách chỉ có thể tính khi đã có đủ tọa độ người dùng và sự kiện.
   const currentDistance =

@@ -13,6 +13,9 @@ export interface CustomFieldConfig {
 export interface ModuleSettings {
   voting_enabled?: boolean;
   doc_sharing?: boolean;
+  require_location?: boolean;
+  require_pin?: boolean;
+  dynamic_qr?: boolean;
   [key: string]: unknown;
 }
 

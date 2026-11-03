@@ -121,7 +121,7 @@ function AttendeeCheckinContent() {
 
       <form onSubmit={form.handleSubmit} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
         {/* Banner hiển thị vị trí Geofence */}
-        {location.gpsReady && location.coords ? (
+        {event.module_settings?.require_location === false ? null : location.gpsReady && location.coords ? (
           <div
             className={`p-3 rounded-xl border flex items-center justify-between text-xs font-medium ${
               location.isWithinRadius
@@ -201,24 +201,26 @@ function AttendeeCheckinContent() {
           ))}
 
           {/* Ô nhập PIN ngẫu nhiên */}
-          <div className="pt-2">
-            <label className="text-xs font-semibold text-slate-700 block mb-1 text-center">
-              Mã PIN trên màn hình trình chiếu <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={4}
-              required
-              value={form.pinInput}
-              onChange={(e) => form.setPinInput(e.target.value.replace(/\D/g, ''))}
-              placeholder="----"
-              className="w-full text-center tracking-[0.5em] font-mono text-2xl font-black px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white placeholder-slate-300 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-colors"
-            />
-            <p className="text-[11px] text-slate-400 mt-1 text-center">
-              Nhìn lên màn chiếu của Host để lấy mã gồm 4 số.
-            </p>
-          </div>
+          {event.module_settings?.require_pin !== false && (
+            <div className="pt-2">
+              <label className="text-xs font-semibold text-slate-700 block mb-1 text-center">
+                Mã PIN trên màn hình trình chiếu <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                required
+                value={form.pinInput}
+                onChange={(e) => form.setPinInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="----"
+                className="w-full text-center tracking-[0.5em] font-mono text-2xl font-black px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white placeholder-slate-300 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-colors"
+              />
+              <p className="text-[11px] text-slate-400 mt-1 text-center">
+                Nhìn lên màn chiếu của Host để lấy mã gồm 4 số.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Lỗi submit */}
@@ -230,13 +232,20 @@ function AttendeeCheckinContent() {
 
         <button
           type="submit"
-          disabled={!location.gpsReady || form.isSubmitting || (!location.isWithinRadius && location.currentDistance !== null)}
+          disabled={
+            (event.module_settings?.require_location !== false &&
+              (!location.gpsReady ||
+                (!location.isWithinRadius && location.currentDistance !== null))) ||
+            form.isSubmitting
+          }
           className="w-full mt-4 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600/20 flex items-center justify-center gap-2 cursor-pointer"
         >
           {form.isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
           {form.isSubmitting
-            ? 'Đang xác minh tọa độ...'
-            : !location.isWithinRadius && location.currentDistance !== null
+            ? 'Đang gửi điểm danh...'
+            : event.module_settings?.require_location !== false &&
+              !location.isWithinRadius &&
+              location.currentDistance !== null
             ? `Ngoài bán kính (${location.currentDistance}m > ${event.radius_meters}m)`
             : 'Xác nhận có mặt'}
         </button>
@@ -244,7 +253,9 @@ function AttendeeCheckinContent() {
 
       <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 py-3">
         <Lock className="w-3 h-3" />
-        Bảo mật chống gửi trùng bằng Geofence & Device ID
+        {event.module_settings?.require_location === false
+          ? 'Bảo mật chống gửi trùng bằng Device ID'
+          : 'Bảo mật chống gửi trùng bằng Geofence & Device ID'}
       </div>
     </main>
   );

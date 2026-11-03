@@ -4,6 +4,8 @@ export const PIN_GRACE_PERIOD_SECONDS = 15;
 
 // Thời gian giữ PIN cũ trước khi dọn khỏi cơ sở dữ liệu, tính bằng giây.
 export const PIN_CLEANUP_RETENTION_SECONDS = 2 * 60;
+export const QR_TOKEN_LIFETIME_SECONDS = 30;
+export const QR_TOKEN_REFRESH_SECONDS = 25;
 
 // Các giá trị khoảng cách tính bằng mét.
 export const DEFAULT_CHECKIN_RADIUS_METERS = 100;

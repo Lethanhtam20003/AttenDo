@@ -20,6 +20,11 @@ interface CreateEventInput {
   location_lng: number;
   radius_meters: number;
   custom_fields: CustomFieldConfig[];
+  module_settings: {
+    require_location: boolean;
+    require_pin: boolean;
+    dynamic_qr: boolean;
+  };
 }
 
 /**
@@ -28,7 +33,7 @@ interface CreateEventInput {
  */
 export async function createEvent(
   input: CreateEventInput
-): Promise<ActionResult<{ eventId: string; pin: string }>> {
+): Promise<ActionResult<{ eventId: string; pin: string | null }>> {
   const user = await verifyAuth();
   const supabase = await createClient();
 
@@ -43,7 +48,7 @@ export async function createEvent(
       location_lng: input.location_lng,
       radius_meters: input.radius_meters,
       custom_fields: input.custom_fields,
-      module_settings: { checkin: true },
+      module_settings: { checkin: true, ...input.module_settings },
     })
     .select('id')
     .single();
@@ -53,15 +58,18 @@ export async function createEvent(
   }
 
   // 2. Tạo PIN đầu tiên
-  const pin = String(Math.floor(1000 + Math.random() * 9000));
-  const expiresAt = new Date(Date.now() + PIN_LIFETIME_SECONDS * 1000).toISOString();
+  let pin: string | null = null;
+  if (input.module_settings.require_pin) {
+    pin = String(Math.floor(1000 + Math.random() * 9000));
+    const expiresAt = new Date(Date.now() + PIN_LIFETIME_SECONDS * 1000).toISOString();
 
-  const { error: pinError } = await supabase
-    .from('event_pins')
-    .insert({ event_id: event.id, current_pin: pin, expires_at: expiresAt });
+    const { error: pinError } = await supabase
+      .from('event_pins')
+      .insert({ event_id: event.id, current_pin: pin, expires_at: expiresAt });
 
-  if (pinError) {
-    return { success: false, error: pinError.message };
+    if (pinError) {
+      return { success: false, error: pinError.message };
+    }
   }
 
   return { success: true, data: { eventId: event.id, pin } };

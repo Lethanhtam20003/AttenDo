@@ -56,12 +56,18 @@ export function useCheckinForm({
 
   const handleSubmit = useCallback(async (formEvent: FormEvent<HTMLFormElement>) => {
     formEvent.preventDefault();
-    if (!gpsReady || !coords || !eventId) {
+    if (!eventId) {
+      setSubmitError('Không tìm thấy mã phiên điểm danh. Vui lòng tải lại trang.');
+      return;
+    }
+
+    const requireLocation = event?.module_settings?.require_location !== false;
+    if (requireLocation && (!gpsReady || !coords)) {
       setSubmitError('Chưa xác định được vị trí GPS của bạn. Vui lòng bật định vị.');
       return;
     }
 
-    if (!isWithinRadius && event) {
+    if (requireLocation && !isWithinRadius && event) {
       setSubmitError(
         `Bạn đang ở cách địa điểm ~${currentDistance}m (Vượt quá bán kính cho phép ${event.radius_meters}m). Vui lòng di chuyển đến gần hội trường.`
       );
@@ -72,27 +78,34 @@ export function useCheckinForm({
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const result = await checkIn({
-      eventId,
-      fullName: fieldValues['full_name'] ?? '',
-      customData: { ...fieldValues },
-      userLat: coords.lat,
-      userLng: coords.lng,
-      pinInput,
-      deviceId: getDeviceId(),
-    });
+    try {
+      const result = await checkIn({
+        eventId,
+        fullName: fieldValues['full_name'] ?? '',
+        customData: { ...fieldValues },
+        userLat: coords?.lat ?? null,
+        userLng: coords?.lng ?? null,
+        pinInput,
+        deviceId: getDeviceId(),
+        qrToken: new URLSearchParams(window.location.search).get('qr') ?? '',
+      });
 
-    setIsSubmitting(false);
+      if (!result.success) {
+        setSubmitError(result.error);
+        return;
+      }
 
-    if (!result.success) {
-      setSubmitError(result.error);
-      return;
+      // Lưu dấu trên thiết bị để tránh điểm danh lặp lại cùng một phiên.
+      localStorage.setItem(`checkedin_${eventId}`, 'true');
+      setDistanceResult(result.data.distance_meters);
+      setIsSuccess(true);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'Có lỗi khi gửi điểm danh. Vui lòng thử lại.'
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Lưu dấu trên thiết bị để tránh điểm danh lặp lại cùng một phiên.
-    localStorage.setItem(`checkedin_${eventId}`, 'true');
-    setDistanceResult(result.data.distance_meters);
-    setIsSuccess(true);
   }, [coords, currentDistance, event, eventId, fieldValues, gpsReady, isWithinRadius, pinInput]);
 
   const handleCheckInAnother = useCallback(() => {

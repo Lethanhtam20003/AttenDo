@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Navigation, Plus, Trash2, GripVertical, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Navigation, Plus, Trash2, GripVertical, ArrowRight, ShieldCheck, Loader2, QrCode } from 'lucide-react';
 import { useHostSetupForm } from '@/hooks/host-setup/useHostSetupForm';
 import { useHostSetupLocation } from '@/hooks/host-setup/useHostSetupLocation';
 import { useCustomFields } from '@/hooks/host-setup/useCustomFields';
@@ -14,7 +15,14 @@ const MapSelector = dynamic(() => import('@/components/host/MapSelector'), {
 export default function HostSetupPage() {
   const location = useHostSetupLocation();
   const customFields = useCustomFields();
-  const form = useHostSetupForm(location.coordinates, location.radius, customFields.fields);
+  const [requireLocation, setRequireLocation] = useState(true);
+  const [requirePin, setRequirePin] = useState(true);
+  const [dynamicQr, setDynamicQr] = useState(false);
+  const form = useHostSetupForm(location.coordinates, location.radius, customFields.fields, {
+    requireLocation,
+    requirePin,
+    dynamicQr,
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6">
@@ -124,6 +132,62 @@ export default function HostSetupPage() {
                 onChangeLocation={location.handleMapLocationChange}
               />
             </div>
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+          <div className="pb-4 border-b border-slate-100">
+            <h2 className="text-base font-semibold text-slate-900">Tùy chọn xác thực</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Chọn cách xác minh người tham dự trước khi ghi nhận điểm danh.
+            </p>
+          </div>
+          <div className="mt-2 divide-y divide-slate-100">
+            <label className="flex items-start justify-between gap-4 py-4 cursor-pointer">
+              <span>
+                <span className="block text-sm font-medium text-slate-800">Kiểm tra vị trí GPS</span>
+                <span className="block mt-1 text-xs text-slate-500">
+                  Chỉ chấp nhận điểm danh khi thiết bị ở trong bán kính đã cấu hình.
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={requireLocation}
+                onChange={(event) => setRequireLocation(event.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600/20"
+              />
+            </label>
+            <label className="flex items-start justify-between gap-4 py-4 cursor-pointer">
+              <span>
+                <span className="block text-sm font-medium text-slate-800">Yêu cầu mã PIN</span>
+                <span className="block mt-1 text-xs text-slate-500">
+                  Người tham dự cần nhập mã PIN đang hiển thị trên màn hình Host.
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={requirePin}
+                onChange={(event) => setRequirePin(event.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600/20"
+              />
+            </label>
+            <label className="flex items-start justify-between gap-4 py-4 cursor-pointer">
+              <span className="flex gap-3">
+                <QrCode className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                <span>
+                  <span className="block text-sm font-medium text-slate-800">Sử dụng mã QR động</span>
+                  <span className="block mt-1 text-xs text-slate-500">
+                    QR chứa mã có hạn 30 giây và tự làm mới trên màn hình Host. Có thể kết hợp với PIN.
+                  </span>
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={dynamicQr}
+                onChange={(event) => setDynamicQr(event.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-600/20"
+              />
+            </label>
           </div>
         </section>
 

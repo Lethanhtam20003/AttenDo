@@ -14,7 +14,12 @@ interface Coordinates {
 export function useHostSetupForm(
   coordinates: Coordinates,
   radius: number,
-  fields: HostSetupCustomField[]
+  fields: HostSetupCustomField[],
+  checkinSettings: {
+    requireLocation: boolean;
+    requirePin: boolean;
+    dynamicQr: boolean;
+  }
 ) {
   const router = useRouter();
   const [eventTitle, setEventTitle] = useState('');
@@ -43,6 +48,11 @@ export function useHostSetupForm(
         location_lng: coordinates.lng,
         radius_meters: radius,
         custom_fields: customFields,
+        module_settings: {
+          require_location: checkinSettings.requireLocation,
+          require_pin: checkinSettings.requirePin,
+          dynamic_qr: checkinSettings.dynamicQr,
+        },
       });
 
       if (!result.success) {
@@ -52,7 +62,7 @@ export function useHostSetupForm(
 
       router.push(`/host/live/${result.data.eventId}`);
     });
-  }, [coordinates.lat, coordinates.lng, eventTitle, fields, radius, router]);
+  }, [checkinSettings, coordinates.lat, coordinates.lng, eventTitle, fields, radius, router]);
 
   return { eventTitle, setEventTitle, errorMsg, isPending, handleLaunch };
 }
