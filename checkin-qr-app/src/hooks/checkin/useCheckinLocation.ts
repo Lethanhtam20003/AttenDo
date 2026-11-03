@@ -23,7 +23,7 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 }
 
 // Xin quyền GPS, tính khoảng cách đến sự kiện và kiểm tra giới hạn geofence.
-export function useCheckinLocation(event: Event | null) {
+export function useCheckinLocation(event: Event | null, pauseAutoRequest = false) {
   const [gpsReady, setGpsReady] = useState(false);
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export function useCheckinLocation(event: Event | null) {
   }, []);
 
   useEffect(() => {
-    if (!event) return;
+    if (!event || pauseAutoRequest) return;
 
     if (event.module_settings?.require_location === false) {
       const timer = setTimeout(() => {
@@ -70,7 +70,7 @@ export function useCheckinLocation(event: Event | null) {
     // Tự lấy vị trí khi mở trang; setTimeout để tránh cập nhật state đồng bộ trong effect.
     const timer = setTimeout(requestLocation, 0);
     return () => clearTimeout(timer);
-  }, [event, requestLocation]);
+  }, [event, pauseAutoRequest, requestLocation]);
 
   // Khoảng cách chỉ có thể tính khi đã có đủ tọa độ người dùng và sự kiện.
   const currentDistance =

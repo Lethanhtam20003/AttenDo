@@ -1,18 +1,41 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState, useSyncExternalStore } from 'react';
 import { useParams } from 'next/navigation';
 import { MapPin, ShieldAlert, CheckCircle2, Lock, Loader2, Navigation } from 'lucide-react';
 import { useCheckinEvent } from '@/hooks/checkin/useCheckinEvent';
 import { useCheckinLocation } from '@/hooks/checkin/useCheckinLocation';
 import { useCheckinForm } from '@/hooks/checkin/useCheckinForm';
+import ZaloBrowserPrompt, { type ZaloPlatform } from '@/components/checkin/ZaloBrowserPrompt';
 import type { CustomFieldConfig } from '@/types/database';
+
+function subscribeToBrowser() {
+  return () => {};
+}
+
+function getUserAgent() {
+  return navigator.userAgent;
+}
+
+function getZaloPlatform(userAgent: string): ZaloPlatform | null {
+  if (!/zalo/i.test(userAgent)) return null;
+  if (/android/i.test(userAgent)) return 'android';
+  if (/iphone|ipad|ipod/i.test(userAgent)) return 'ios';
+  return 'other';
+}
 
 function AttendeeCheckinContent() {
   const params = useParams<{ eventId: string }>();
   const eventId = params?.eventId;
   const { event, loading } = useCheckinEvent(eventId);
-  const location = useCheckinLocation(event);
+  const userAgent = useSyncExternalStore(subscribeToBrowser, getUserAgent, () => '');
+  const zaloPlatform = getZaloPlatform(userAgent);
+  const [continueInZalo, setContinueInZalo] = useState(false);
+
+  const location = useCheckinLocation(
+    event,
+    !userAgent || (zaloPlatform !== null && !continueInZalo)
+  );
   const form = useCheckinForm({
     eventId,
     event,
@@ -118,6 +141,13 @@ function AttendeeCheckinContent() {
         <h1 className="text-xl font-bold text-slate-900 tracking-tight">Check-in Điểm Danh</h1>
         <p className="text-xs text-slate-500 mt-0.5 font-medium">{event.title}</p>
       </div>
+
+      {zaloPlatform && !continueInZalo && (
+        <ZaloBrowserPrompt
+          platform={zaloPlatform}
+          onContinue={() => setContinueInZalo(true)}
+        />
+      )}
 
       <form onSubmit={form.handleSubmit} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
         {/* Banner hiển thị vị trí Geofence */}
