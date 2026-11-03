@@ -2,7 +2,17 @@
 
 import { createClient, verifyAuth } from '@/lib/supabase/server';
 import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
-import type { ActionResult, CustomFieldConfig } from '@/types/database';
+import type {
+  ActionResult,
+  AttendanceRecord,
+  CustomFieldConfig,
+  Event,
+} from '@/types/database';
+
+export type ManagedEvent = Pick<
+  Event,
+  'id' | 'title' | 'status' | 'created_at' | 'location_lat' | 'location_lng'
+>;
 
 interface CreateEventInput {
   title: string;
@@ -98,4 +108,55 @@ export async function getEvent(eventId: string) {
 
   if (error) return null;
   return data;
+}
+
+export async function getManagedEvents(): Promise<ActionResult<ManagedEvent[]>> {
+  const user = await verifyAuth();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, title, status, created_at, location_lat, location_lng')
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return { success: false, error: 'Không thể tải danh sách phiên điểm danh.' };
+  }
+
+  return { success: true, data: data ?? [] };
+}
+
+export async function getManagedEventAttendance(
+  eventId: string
+): Promise<ActionResult<{ event: Event; attendees: AttendanceRecord[] }>> {
+  const user = await verifyAuth();
+  const supabase = await createClient();
+
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', eventId)
+    .eq('created_by', user.id)
+    .maybeSingle();
+
+  if (eventError) {
+    return { success: false, error: 'Không thể tải thông tin phiên điểm danh.' };
+  }
+
+  if (!event) {
+    return { success: false, error: 'Không tìm thấy phiên điểm danh hoặc bạn không có quyền xem.' };
+  }
+
+  const { data: attendees, error: attendanceError } = await supabase
+    .from('attendance_records')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('checked_in_at', { ascending: false });
+
+  if (attendanceError) {
+    return { success: false, error: 'Không thể tải danh sách người tham dự.' };
+  }
+
+  return { success: true, data: { event, attendees: attendees ?? [] } };
 }
