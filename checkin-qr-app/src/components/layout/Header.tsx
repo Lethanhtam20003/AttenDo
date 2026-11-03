@@ -29,10 +29,10 @@ export default async function Header() {
           {user ? (
             <>
               <Link
-                href="/host/setup"
+                href="/host/manage"
                 className="hover:text-blue-600 transition-colors"
               >
-                Bảng điều khiển
+                Quản lý
               </Link>
               <form action={logout}>
                 <button

@@ -15,8 +15,9 @@ export default function RootLayout({ children } : LayoutProps<"/">) {
   return (
     <html lang="vi">
       <body className={`${inter.className} flex min-h-screen flex-col`}>
-        <ConditionalLayoutChrome
-          header={
+        <Suspense fallback={null}>
+          <ConditionalLayoutChrome
+          >
             <Suspense
               fallback={
                 <div
@@ -27,10 +28,14 @@ export default function RootLayout({ children } : LayoutProps<"/">) {
             >
               <Header />
             </Suspense>
-          }
-          footer={<Footer />}
-        />
+          </ConditionalLayoutChrome>
+        </Suspense>
         <main className="flex-1">{children}</main>
+        <Suspense fallback={null}>
+          <ConditionalLayoutChrome>
+            <Footer />
+          </ConditionalLayoutChrome>
+        </Suspense>
       </body>
     </html>
   );
