@@ -44,13 +44,18 @@ export function useCheckinForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [checkedInName, setCheckedInName] = useState('');
   const [distanceResult, setDistanceResult] = useState<number | null>(null);
 
   useEffect(() => {
     if (!eventId || typeof window === 'undefined') return;
     // Khôi phục màn hình thành công nếu thiết bị đã điểm danh phiên này trước đó.
     if (localStorage.getItem(`checkedin_${eventId}`)) {
-      Promise.resolve().then(() => setIsSuccess(true));
+      const savedName = localStorage.getItem(`checkedin_name_${eventId}`) ?? '';
+      Promise.resolve().then(() => {
+        setCheckedInName(savedName);
+        setIsSuccess(true);
+      });
     }
   }, [eventId]);
 
@@ -79,9 +84,16 @@ export function useCheckinForm({
     setSubmitError(null);
 
     try {
+      const attendeeName = (
+        fieldValues['full_name'] ??
+        event?.custom_fields
+          .map((field) => fieldValues[field.key])
+          .find((value) => value?.trim()) ??
+        ''
+      ).trim();
       const result = await checkIn({
         eventId,
-        fullName: fieldValues['full_name'] ?? '',
+        fullName: attendeeName,
         customData: { ...fieldValues },
         userLat: coords?.lat ?? null,
         userLng: coords?.lng ?? null,
@@ -97,6 +109,8 @@ export function useCheckinForm({
 
       // Lưu dấu trên thiết bị để tránh điểm danh lặp lại cùng một phiên.
       localStorage.setItem(`checkedin_${eventId}`, 'true');
+      localStorage.setItem(`checkedin_name_${eventId}`, attendeeName);
+      setCheckedInName(attendeeName);
       setDistanceResult(result.data.distance_meters);
       setIsSuccess(true);
     } catch (error) {
@@ -116,6 +130,7 @@ export function useCheckinForm({
     isSubmitting,
     submitError,
     isSuccess,
+    checkedInName,
     distanceResult,
     handleSubmit,
   };

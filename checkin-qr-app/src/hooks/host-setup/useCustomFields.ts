@@ -36,6 +36,20 @@ export function useCustomFields() {
     setFields((currentFields) => currentFields.filter((field) => field.id !== id));
   }, []);
 
+  const reorderField = useCallback((sourceId: string, targetId: string, placeAfter: boolean) => {
+    setFields((currentFields) => {
+      const sourceIndex = currentFields.findIndex((field) => field.id === sourceId);
+      const targetIndex = currentFields.findIndex((field) => field.id === targetId);
+      if (sourceIndex === -1 || targetIndex === -1 || sourceId === targetId) return currentFields;
+
+      const reorderedFields = [...currentFields];
+      const [movedField] = reorderedFields.splice(sourceIndex, 1);
+      const adjustedTargetIndex = reorderedFields.findIndex((field) => field.id === targetId);
+      reorderedFields.splice(adjustedTargetIndex + (placeAfter ? 1 : 0), 0, movedField);
+      return reorderedFields;
+    });
+  }, []);
+
   const updateFieldLabel = useCallback((id: string, label: string) => {
     setFields((currentFields) =>
       currentFields.map((field) => {
@@ -60,5 +74,5 @@ export function useCustomFields() {
     );
   }, []);
 
-  return { fields, addField, removeField, updateFieldLabel, updateFieldType, updateFieldRequired };
+  return { fields, addField, removeField, reorderField, updateFieldLabel, updateFieldType, updateFieldRequired };
 }

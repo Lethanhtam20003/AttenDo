@@ -3,6 +3,12 @@
 import { useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createEvent } from '@/actions/events';
+import {
+  PIN_MAX_REFRESH_SECONDS,
+  PIN_MIN_REFRESH_SECONDS,
+  QR_TOKEN_MAX_REFRESH_SECONDS,
+  QR_TOKEN_MIN_REFRESH_SECONDS,
+} from '@/constants/checkin';
 import type { CustomFieldConfig } from '@/types/database';
 import type { HostSetupCustomField } from './useCustomFields';
 
@@ -19,6 +25,9 @@ export function useHostSetupForm(
     requireLocation: boolean;
     requirePin: boolean;
     dynamicQr: boolean;
+    dynamicQrIntervalSeconds: number;
+    pinIntervalSeconds: number;
+    sessionDurationMinutes: number;
   }
 ) {
   const router = useRouter();
@@ -30,6 +39,36 @@ export function useHostSetupForm(
     setErrorMsg(null);
     if (!eventTitle.trim()) {
       setErrorMsg('Vui lòng nhập tên sự kiện trước khi khởi chạy.');
+      return;
+    }
+    if (fields.length === 0) {
+      setErrorMsg('Vui lòng thêm ít nhất một trường thông tin người tham dự.');
+      return;
+    }
+    if (
+      !Number.isInteger(checkinSettings.sessionDurationMinutes) ||
+      checkinSettings.sessionDurationMinutes < 1 ||
+      checkinSettings.sessionDurationMinutes > 10080
+    ) {
+      setErrorMsg('Thời gian tồn tại phiên phải từ 1 phút đến 168 giờ.');
+      return;
+    }
+    if (
+      checkinSettings.dynamicQr &&
+      (!Number.isInteger(checkinSettings.dynamicQrIntervalSeconds) ||
+        checkinSettings.dynamicQrIntervalSeconds < QR_TOKEN_MIN_REFRESH_SECONDS ||
+        checkinSettings.dynamicQrIntervalSeconds > QR_TOKEN_MAX_REFRESH_SECONDS)
+    ) {
+      setErrorMsg('Thời gian đổi mã QR phải từ 1 đến 86400 giây.');
+      return;
+    }
+    if (
+      checkinSettings.requirePin &&
+      (!Number.isInteger(checkinSettings.pinIntervalSeconds) ||
+        checkinSettings.pinIntervalSeconds < PIN_MIN_REFRESH_SECONDS ||
+        checkinSettings.pinIntervalSeconds > PIN_MAX_REFRESH_SECONDS)
+    ) {
+      setErrorMsg('Thời gian đổi mã PIN phải từ 1 đến 86400 giây.');
       return;
     }
 
@@ -44,6 +83,7 @@ export function useHostSetupForm(
 
       const result = await createEvent({
         title: eventTitle.trim(),
+        duration_minutes: checkinSettings.sessionDurationMinutes,
         location_lat: checkinSettings.requireLocation ? coordinates.lat : null,
         location_lng: checkinSettings.requireLocation ? coordinates.lng : null,
         radius_meters: radius,
@@ -52,6 +92,8 @@ export function useHostSetupForm(
           require_location: checkinSettings.requireLocation,
           require_pin: checkinSettings.requirePin,
           dynamic_qr: checkinSettings.dynamicQr,
+          dynamic_qr_interval_seconds: checkinSettings.dynamicQrIntervalSeconds,
+          pin_interval_seconds: checkinSettings.pinIntervalSeconds,
         },
       });
 

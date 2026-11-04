@@ -2,7 +2,10 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import { createClient, verifyAuth } from '@/lib/supabase/server';
-import { QR_TOKEN_LIFETIME_SECONDS } from '@/constants/checkin';
+import {
+  QR_TOKEN_REFRESH_GRACE_SECONDS,
+  getQrTokenRefreshSeconds,
+} from '@/constants/checkin';
 import type { ActionResult } from '@/types/database';
 
 export async function issueDynamicQrToken(
@@ -31,7 +34,12 @@ export async function issueDynamicQrToken(
   const now = new Date();
   const token = randomBytes(32).toString('base64url');
   const tokenHash = createHash('sha256').update(token).digest('hex');
-  const expiresAt = new Date(now.getTime() + QR_TOKEN_LIFETIME_SECONDS * 1000).toISOString();
+  const refreshSeconds = getQrTokenRefreshSeconds(
+    event.module_settings?.dynamic_qr_interval_seconds
+  );
+  const expiresAt = new Date(
+    now.getTime() + (refreshSeconds + QR_TOKEN_REFRESH_GRACE_SECONDS) * 1000
+  ).toISOString();
 
   const { error: cleanupError } = await supabase
     .from('event_qr_tokens')
