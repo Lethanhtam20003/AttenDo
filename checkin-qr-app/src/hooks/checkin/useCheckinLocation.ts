@@ -27,6 +27,8 @@ export function useCheckinLocation(event: Event | null, pauseAutoRequest = false
   const [gpsReady, setGpsReady] = useState(false);
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [isRefiningLocation, setIsRefiningLocation] = useState(false);
+  const [isPermissionDenied, setIsPermissionDenied] = useState(false);
 
   const requestLocation = useCallback(() => {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
@@ -35,18 +37,73 @@ export function useCheckinLocation(event: Event | null, pauseAutoRequest = false
     }
 
     setGpsError(null);
+    setIsPermissionDenied(false);
+    setGpsReady(false);
+    setCoords(null);
+    setIsRefiningLocation(false);
+
+    const acceptPosition = (position: GeolocationPosition) => {
+      setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+      setGpsReady(true);
+      setIsRefiningLocation(false);
+    };
+
+    const reportLocationError = (error: GeolocationPositionError) => {
+      setGpsReady(false);
+      setIsRefiningLocation(false);
+      setIsPermissionDenied(error.code === error.PERMISSION_DENIED);
+      setGpsError(
+        error.code === error.PERMISSION_DENIED
+          ? 'Chưa được cấp quyền truy cập vị trí.'
+          : 'Không lấy được vị trí. Hãy bật Dịch vụ định vị và thử lại.'
+      );
+    };
+
+    const requestPreciseLocation = () => {
+      setIsRefiningLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        acceptPosition,
+        reportLocationError,
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 }
+      );
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-        setGpsReady(true);
+        const eventLatitude = event?.location_lat;
+        const eventLongitude = event?.location_lng;
+        const accuracy = position.coords.accuracy;
+        const distance = eventLatitude != null && eventLongitude != null
+          ? calculateDistance(
+              eventLatitude,
+              eventLongitude,
+              position.coords.latitude,
+              position.coords.longitude
+            )
+          : null;
+        const radius = event?.radius_meters || 100;
+        const safelyClassified =
+          distance !== null &&
+          (distance + accuracy <= radius || distance - accuracy > radius);
+
+        if (safelyClassified) {
+          acceptPosition(position);
+          return;
+        }
+
+        requestPreciseLocation();
       },
-      () => {
-        setGpsReady(false);
-        setGpsError('Vui lòng bật quyền truy cập GPS để xác nhận vị trí của bạn.');
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          reportLocationError(error);
+          return;
+        }
+
+        requestPreciseLocation();
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 2500, maximumAge: 30000 }
     );
-  }, []);
+  }, [event]);
 
   useEffect(() => {
     if (!event || pauseAutoRequest) return;
@@ -81,5 +138,14 @@ export function useCheckinLocation(event: Event | null, pauseAutoRequest = false
   const isWithinRadius =
     currentDistance === null || (event ? currentDistance <= (event.radius_meters || 100) : true);
 
-  return { gpsReady, coords, gpsError, requestLocation, currentDistance, isWithinRadius };
+  return {
+    gpsReady,
+    coords,
+    gpsError,
+    isRefiningLocation,
+    isPermissionDenied,
+    requestLocation,
+    currentDistance,
+    isWithinRadius,
+  };
 }

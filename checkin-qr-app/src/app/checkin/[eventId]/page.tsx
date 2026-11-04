@@ -1,13 +1,14 @@
 'use client';
 
-import { Suspense, useState, useSyncExternalStore } from 'react';
+import { Suspense, useSyncExternalStore } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { MapPin, ShieldAlert, CheckCircle2, Lock, Loader2, Navigation } from 'lucide-react';
 import { useCheckinEvent } from '@/hooks/checkin/useCheckinEvent';
 import { useCheckinLocation } from '@/hooks/checkin/useCheckinLocation';
 import { useCheckinForm } from '@/hooks/checkin/useCheckinForm';
-import ZaloBrowserPrompt, { type ZaloPlatform } from '@/components/checkin/ZaloBrowserPrompt';
+import LocationHelpPrompt from '@/components/checkin/LocationHelpPrompt';
+import { detectCheckinEnvironment } from '@/lib/checkin/browser';
 import type { CustomFieldConfig } from '@/types/database';
 
 function subscribeToBrowser() {
@@ -18,24 +19,19 @@ function getUserAgent() {
   return navigator.userAgent;
 }
 
-function getZaloPlatform(userAgent: string): ZaloPlatform | null {
-  if (!/zalo/i.test(userAgent)) return null;
-  if (/android/i.test(userAgent)) return 'android';
-  if (/iphone|ipad|ipod/i.test(userAgent)) return 'ios';
-  return 'other';
-}
-
 function AttendeeCheckinContent() {
   const params = useParams<{ eventId: string }>();
   const eventId = params?.eventId;
   const { event, loading } = useCheckinEvent(eventId);
   const userAgent = useSyncExternalStore(subscribeToBrowser, getUserAgent, () => '');
-  const zaloPlatform = getZaloPlatform(userAgent);
-  const [continueInZalo, setContinueInZalo] = useState(false);
+  const environment = detectCheckinEnvironment(
+    userAgent,
+    typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints
+  );
 
   const location = useCheckinLocation(
     event,
-    !userAgent || (zaloPlatform !== null && !continueInZalo)
+    !userAgent
   );
   const form = useCheckinForm({
     eventId,
@@ -90,13 +86,6 @@ function AttendeeCheckinContent() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={form.handleCheckInAnother}
-            className="mt-5 text-xs text-blue-600 hover:underline cursor-pointer"
-          >
-            Điểm danh người khác trên máy này
-          </button>
         </div>
       </main>
     );
@@ -157,13 +146,6 @@ function AttendeeCheckinContent() {
       <p className="mt-0.5 break-words text-sm font-medium text-slate-500">{event.title}</p>
     </div>
 
-      {zaloPlatform && !continueInZalo && (
-        <ZaloBrowserPrompt
-          platform={zaloPlatform}
-          onContinue={() => setContinueInZalo(true)}
-        />
-      )}
-
       <form onSubmit={form.handleSubmit} className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
         {/* Banner hiển thị vị trí Geofence */}
         {event.module_settings?.require_location === false ? null : location.gpsReady && location.coords ? (
@@ -197,7 +179,13 @@ function AttendeeCheckinContent() {
           <div className="flex items-start justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-800 sm:items-center">
             <div className="flex items-center gap-2">
               <Navigation className="w-4 h-4 text-amber-600 shrink-0 animate-spin" />
-              <span>{location.gpsError || 'Đang xin quyền định vị GPS...'}</span>
+              <div className="space-y-1">
+                <span>
+                  {location.isRefiningLocation
+                    ? 'Đang xác định vị trí chính xác...'
+                    : location.gpsError || 'Đang tìm vị trí gần đây...'}
+                </span>
+              </div>
             </div>
             {location.gpsError && (
               <button
@@ -295,6 +283,15 @@ function AttendeeCheckinContent() {
             : 'Xác nhận có mặt'}
         </button>
       </form>
+
+      {event.module_settings?.require_location !== false && (
+        <LocationHelpPrompt
+          key={location.isPermissionDenied ? 'permission-denied' : 'permission-prompt'}
+          platform={environment.platform}
+          browser={environment.browser}
+          permissionDenied={location.isPermissionDenied}
+        />
+      )}
 
       <div className="flex items-center justify-center gap-1.5 py-3 text-center text-[11px] text-slate-400">
         <Lock className="w-3 h-3" />

@@ -108,14 +108,6 @@ export function useCheckinForm({
     }
   }, [coords, currentDistance, event, eventId, fieldValues, gpsReady, isWithinRadius, pinInput]);
 
-  const handleCheckInAnother = useCallback(() => {
-    if (!eventId || !confirm('Bạn có chắc muốn hủy lưu để người khác điểm danh trên thiết bị này?')) {
-      return;
-    }
-    localStorage.removeItem(`checkedin_${eventId}`);
-    setIsSuccess(false);
-  }, [eventId]);
-
   return {
     fieldValues,
     setFieldValues,
@@ -126,6 +118,5 @@ export function useCheckinForm({
     isSuccess,
     distanceResult,
     handleSubmit,
-    handleCheckInAnother,
   };
 }
