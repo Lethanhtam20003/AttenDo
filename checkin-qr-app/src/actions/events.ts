@@ -1,7 +1,12 @@
 'use server';
 
 import { createClient, verifyAuth } from '@/lib/supabase/server';
-import { PIN_LIFETIME_SECONDS } from '@/constants/checkin';
+import {
+  PIN_MAX_REFRESH_SECONDS,
+  PIN_MIN_REFRESH_SECONDS,
+  QR_TOKEN_MAX_REFRESH_SECONDS,
+  QR_TOKEN_MIN_REFRESH_SECONDS,
+} from '@/constants/checkin';
 import type {
   ActionResult,
   AttendanceRecord,
@@ -24,6 +29,8 @@ interface CreateEventInput {
     require_location: boolean;
     require_pin: boolean;
     dynamic_qr: boolean;
+    dynamic_qr_interval_seconds: number;
+    pin_interval_seconds: number;
   };
 }
 
@@ -35,6 +42,25 @@ export async function createEvent(
   input: CreateEventInput
 ): Promise<ActionResult<{ eventId: string; pin: string | null }>> {
   const user = await verifyAuth();
+  const qrInterval = input.module_settings.dynamic_qr_interval_seconds;
+  if (
+    input.module_settings.dynamic_qr &&
+    (!Number.isInteger(qrInterval) ||
+      qrInterval < QR_TOKEN_MIN_REFRESH_SECONDS ||
+      qrInterval > QR_TOKEN_MAX_REFRESH_SECONDS)
+  ) {
+    return { success: false, error: 'Thời gian đổi mã QR phải từ 1 đến 86400 giây.' };
+  }
+  const pinInterval = input.module_settings.pin_interval_seconds;
+  if (
+    input.module_settings.require_pin &&
+    (!Number.isInteger(pinInterval) ||
+      pinInterval < PIN_MIN_REFRESH_SECONDS ||
+      pinInterval > PIN_MAX_REFRESH_SECONDS)
+  ) {
+    return { success: false, error: 'Thời gian đổi mã PIN phải từ 1 đến 86400 giây.' };
+  }
+
   const supabase = await createClient();
 
   // 1. Tạo sự kiện
@@ -61,7 +87,9 @@ export async function createEvent(
   let pin: string | null = null;
   if (input.module_settings.require_pin) {
     pin = String(Math.floor(1000 + Math.random() * 9000));
-    const expiresAt = new Date(Date.now() + PIN_LIFETIME_SECONDS * 1000).toISOString();
+    const expiresAt = new Date(
+      Date.now() + input.module_settings.pin_interval_seconds * 1000
+    ).toISOString();
 
     const { error: pinError } = await supabase
       .from('event_pins')

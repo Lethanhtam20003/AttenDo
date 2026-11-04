@@ -3,6 +3,12 @@
 import { useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createEvent } from '@/actions/events';
+import {
+  PIN_MAX_REFRESH_SECONDS,
+  PIN_MIN_REFRESH_SECONDS,
+  QR_TOKEN_MAX_REFRESH_SECONDS,
+  QR_TOKEN_MIN_REFRESH_SECONDS,
+} from '@/constants/checkin';
 import type { CustomFieldConfig } from '@/types/database';
 import type { HostSetupCustomField } from './useCustomFields';
 
@@ -19,6 +25,8 @@ export function useHostSetupForm(
     requireLocation: boolean;
     requirePin: boolean;
     dynamicQr: boolean;
+    dynamicQrIntervalSeconds: number;
+    pinIntervalSeconds: number;
   }
 ) {
   const router = useRouter();
@@ -30,6 +38,24 @@ export function useHostSetupForm(
     setErrorMsg(null);
     if (!eventTitle.trim()) {
       setErrorMsg('Vui lòng nhập tên sự kiện trước khi khởi chạy.');
+      return;
+    }
+    if (
+      checkinSettings.dynamicQr &&
+      (!Number.isInteger(checkinSettings.dynamicQrIntervalSeconds) ||
+        checkinSettings.dynamicQrIntervalSeconds < QR_TOKEN_MIN_REFRESH_SECONDS ||
+        checkinSettings.dynamicQrIntervalSeconds > QR_TOKEN_MAX_REFRESH_SECONDS)
+    ) {
+      setErrorMsg('Thời gian đổi mã QR phải từ 1 đến 86400 giây.');
+      return;
+    }
+    if (
+      checkinSettings.requirePin &&
+      (!Number.isInteger(checkinSettings.pinIntervalSeconds) ||
+        checkinSettings.pinIntervalSeconds < PIN_MIN_REFRESH_SECONDS ||
+        checkinSettings.pinIntervalSeconds > PIN_MAX_REFRESH_SECONDS)
+    ) {
+      setErrorMsg('Thời gian đổi mã PIN phải từ 1 đến 86400 giây.');
       return;
     }
 
@@ -52,6 +78,8 @@ export function useHostSetupForm(
           require_location: checkinSettings.requireLocation,
           require_pin: checkinSettings.requirePin,
           dynamic_qr: checkinSettings.dynamicQr,
+          dynamic_qr_interval_seconds: checkinSettings.dynamicQrIntervalSeconds,
+          pin_interval_seconds: checkinSettings.pinIntervalSeconds,
         },
       });
 

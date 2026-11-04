@@ -5,7 +5,10 @@ import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import { AlertTriangle, CheckCircle2, Download, Loader2, MapPin, Maximize2, QrCode, Share2, ShieldCheck, Users, X } from 'lucide-react';
 import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
-import { PIN_LIFETIME_SECONDS, QR_TOKEN_LIFETIME_SECONDS } from '@/constants/checkin';
+import {
+  getPinRefreshSeconds,
+  getQrTokenRefreshSeconds,
+} from '@/constants/checkin';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
 
 function HostLiveContent() {
@@ -29,6 +32,9 @@ function HostLiveContent() {
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
   const [copyFallbackUrl, setCopyFallbackUrl] = useState(false);
+  const pinRefreshSeconds = getPinRefreshSeconds(
+    event?.module_settings?.pin_interval_seconds
+  );
 
   const handleShareQr = async () => {
     if (!checkinUrl || isSharingQr) return;
@@ -329,7 +335,7 @@ function HostLiveContent() {
             {checkinUrl && (
               event?.module_settings?.dynamic_qr === true ? (
                 <p className="text-xs text-slate-500">
-                  Mã QR có hiệu lực {QR_TOKEN_LIFETIME_SECONDS} giây · tự làm mới sau {qrTimeLeft}s
+                  Mã QR tự đổi sau {getQrTokenRefreshSeconds(event.module_settings.dynamic_qr_interval_seconds)} giây · còn {qrTimeLeft}s
                 </p>
               ) : (
                 <p className="text-[11px] text-slate-400 font-mono break-all px-2 select-all">
@@ -352,7 +358,7 @@ function HostLiveContent() {
             {event?.module_settings?.require_pin !== false && (
               <div className="w-full mt-4 pt-5 border-t border-slate-100 flex flex-col items-center">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Mã xác nhận bảo mật (Đổi sau {timeLeft}s)
+                  Mã PIN tự đổi sau {pinRefreshSeconds}s · còn {timeLeft}s
                 </span>
 
                 <div className="w-full bg-slate-50 border border-slate-200/80 px-6 py-4 rounded-xl flex items-center justify-center">
@@ -364,7 +370,7 @@ function HostLiveContent() {
                 <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
                   <div
                     className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-linear"
-                    style={{ width: `${(timeLeft / PIN_LIFETIME_SECONDS) * 100}%` }}
+                    style={{ width: `${(timeLeft / pinRefreshSeconds) * 100}%` }}
                   />
                 </div>
 

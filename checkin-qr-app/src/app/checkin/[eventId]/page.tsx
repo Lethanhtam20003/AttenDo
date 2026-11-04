@@ -41,6 +41,16 @@ function AttendeeCheckinContent() {
     currentDistance: location.currentDistance,
     isWithinRadius: location.isWithinRadius,
   });
+  const requiresLocation = event?.module_settings?.require_location !== false;
+  const requiresPin = event?.module_settings?.require_pin !== false;
+  const isDynamicQr = event?.module_settings?.dynamic_qr === true;
+  const successMessage = requiresLocation
+    ? 'Thông tin, vị trí GPS và thời gian điểm danh của bạn đã được ghi nhận trên hệ thống.'
+    : requiresPin
+      ? 'Thông tin và thời gian điểm danh đã được ghi nhận sau khi xác minh mã QR và PIN.'
+      : isDynamicQr
+        ? 'Thông tin và thời gian điểm danh đã được ghi nhận sau khi xác minh mã QR động.'
+        : 'Thông tin và thời gian điểm danh đã được ghi nhận sau khi xác minh mã QR.';
 
   // ── Màn hình thành công ───────────────────────────────────
   if (form.isSuccess) {
@@ -50,20 +60,26 @@ function AttendeeCheckinContent() {
           <div className="w-14 h-14 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-7 h-7" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Điểm danh thành công!</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {form.checkedInName
+              ? `${form.checkedInName}, bạn đã điểm danh thành công!`
+              : 'Bạn đã điểm danh thành công!'}
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Thông tin, vị trí và thời gian của bạn đã được ghi nhận trên hệ thống Host.
+            {successMessage}
           </p>
 
           <div className="mt-5 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 text-left space-y-2 font-mono">
             <div className="flex justify-between">
               <span className="text-slate-400">Trạng thái:</span>
               <span className="text-emerald-600 font-semibold">
-                {event?.module_settings?.require_location !== false
+                {requiresLocation
                   ? 'Đã xác minh GPS'
-                  : event?.module_settings?.require_pin !== false
+                  : requiresPin
                     ? 'Đã xác minh QR và PIN'
-                    : 'Đã xác minh QR'}
+                    : isDynamicQr
+                      ? 'Đã xác minh QR động'
+                      : 'Đã xác minh QR'}
               </span>
             </div>
             {form.distanceResult !== null && (
@@ -224,9 +240,16 @@ function AttendeeCheckinContent() {
               </label>
               <input
                 type={field.type === 'tel' ? 'tel' : field.type === 'number' ? 'number' : 'text'}
+                inputMode={field.type === 'tel' ? 'numeric' : undefined}
+                pattern={field.type === 'tel' ? '[0-9]*' : undefined}
                 required={field.required}
                 value={form.fieldValues[field.key] ?? ''}
-                onChange={(e) => form.setFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                onChange={(e) => {
+                  const value = field.type === 'tel'
+                    ? e.target.value.replace(/\D/g, '')
+                    : e.target.value;
+                  form.setFieldValues((prev) => ({ ...prev, [field.key]: value }));
+                }}
                 placeholder={`Nhập ${field.label.toLowerCase()}...`}
                 className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
               />

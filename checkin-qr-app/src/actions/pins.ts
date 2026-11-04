@@ -3,7 +3,7 @@
 import { createClient, verifyAuth } from '@/lib/supabase/server';
 import {
   PIN_CLEANUP_RETENTION_SECONDS,
-  PIN_LIFETIME_SECONDS,
+  getPinRefreshSeconds,
 } from '@/constants/checkin';
 import type { ActionResult } from '@/types/database';
 
@@ -19,7 +19,7 @@ export async function rotatePin(
 
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('status')
+    .select('status, module_settings')
     .eq('id', eventId)
     .maybeSingle();
 
@@ -30,7 +30,8 @@ export async function rotatePin(
   }
 
   const pin = String(Math.floor(1000 + Math.random() * 9000));
-  const expiresAt = new Date(Date.now() + PIN_LIFETIME_SECONDS * 1000).toISOString();
+  const refreshSeconds = getPinRefreshSeconds(event.module_settings?.pin_interval_seconds);
+  const expiresAt = new Date(Date.now() + refreshSeconds * 1000).toISOString();
   const cleanupBefore = new Date(Date.now() - PIN_CLEANUP_RETENTION_SECONDS * 1000).toISOString();
 
   // Dọn dẹp các PIN đã hết hạn quá 2 phút

@@ -16,6 +16,8 @@ export interface ModuleSettings {
   require_location?: boolean;
   require_pin?: boolean;
   dynamic_qr?: boolean;
+  dynamic_qr_interval_seconds?: number;
+  pin_interval_seconds?: number;
   [key: string]: unknown;
 }
 

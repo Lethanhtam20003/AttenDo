@@ -1,7 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import { ArrowRight, GripVertical, Loader2, MapPin, Navigation, Plus, QrCode, ScanFace, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+  PIN_REFRESH_DEFAULT_SECONDS,
+  QR_TOKEN_LIFETIME_SECONDS,
+} from '@/constants/checkin';
 import { useCustomFields } from '@/hooks/host-setup/useCustomFields';
 import { useHostSetupForm } from '@/hooks/host-setup/useHostSetupForm';
 import { useHostSetupLocation } from '@/hooks/host-setup/useHostSetupLocation';
@@ -29,12 +34,16 @@ const moduleDetails: Record<HostSetupModule, { title: string; description: strin
 };
 
 export function HostSetupPage({ module }: { module: HostSetupModule }) {
+  const defaultInterval = module === 'qr-pin' ? PIN_REFRESH_DEFAULT_SECONDS : QR_TOKEN_LIFETIME_SECONDS;
+  const [refreshInterval, setRefreshInterval] = useState(String(defaultInterval));
   const location = useHostSetupLocation();
   const customFields = useCustomFields();
   const settings = {
     requireLocation: module === 'gps',
     requirePin: module === 'qr-pin',
     dynamicQr: module === 'dynamic-qr',
+    dynamicQrIntervalSeconds: Number(refreshInterval),
+    pinIntervalSeconds: Number(refreshInterval),
   };
   const form = useHostSetupForm(
     location.coordinates,
@@ -86,6 +95,57 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
             className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-base text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
           />
         </section>
+
+        {(module === 'dynamic-qr' || module === 'qr-pin') && (
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">
+              Thời gian tự đổi {module === 'qr-pin' ? 'mã PIN' : 'mã QR'}
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Chọn khoảng thời gian {module === 'qr-pin' ? 'mã PIN' : 'mã QR'} được làm mới.
+            </p>
+            <div className="mt-4 grid grid-cols-3 gap-2 sm:max-w-md">
+              {[
+                { label: '30 giây', seconds: 30 },
+                { label: '1 phút', seconds: 60 },
+                { label: '2 phút', seconds: 120 },
+              ].map((option) => (
+                <button
+                  key={option.seconds}
+                  type="button"
+                  onClick={() => setRefreshInterval(String(option.seconds))}
+                  aria-pressed={Number(refreshInterval) === option.seconds}
+                  className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                    Number(refreshInterval) === option.seconds
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 max-w-md">
+              <label htmlFor="refresh-interval" className="block text-sm font-medium text-slate-700">
+                Hoặc nhập thời gian cụ thể
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  id="refresh-interval"
+                  type="number"
+                  min={1}
+                  max={86400}
+                  step={1}
+                  value={refreshInterval}
+                  onChange={(event) => setRefreshInterval(event.target.value)}
+                  className="min-h-11 w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                />
+                <span className="text-sm text-slate-500">giây</span>
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">Nhập từ 1 đến 86400 giây.</p>
+            </div>
+          </section>
+        )}
 
         {module === 'gps' && (
           <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
