@@ -1,4 +1,4 @@
-import { QrCode, ScanFace, MapPin } from "lucide-react";
+import { QrCode, Hash, MapPin } from "lucide-react";
 
 export const Solutions = () => {
   const solutions = [
@@ -15,7 +15,12 @@ export const Solutions = () => {
       link: "/host/gps/setup",
     },
     {
-      icon: <ScanFace className="w-6 h-6 text-blue-600" />,
+      icon: (
+        <span className="flex items-center gap-0.5 text-blue-600" aria-hidden="true">
+          <QrCode className="h-5 w-5" />
+          <Hash className="h-4 w-4" />
+        </span>
+      ),
       title: "3. Tạo mã Qr +mã pin",
       desc: "hiển thị mã Qr và mã pin để điểm danh, giúp tăng cường bảo mật và xác thực người dùng.",
       link: "/host/qr-pin/setup",

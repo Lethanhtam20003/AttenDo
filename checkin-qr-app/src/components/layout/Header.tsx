@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { LogOut, UserCheck } from "lucide-react";
+import Image from "next/image";
+import { LogOut } from "lucide-react";
 import { connection } from "next/server";
 import { logout } from "@/actions/auth";
 import { getUserSession } from "@/lib/supabase/server";
@@ -10,19 +11,23 @@ export default async function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-            <UserCheck className="w-5 h-5" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900">
-            Atten<span className="text-blue-600">Do</span>
+      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5">
+          <Image
+            src="/logo/trung-tam-cung-ung-dich-vu-cong-xa-xuan-son.png"
+            alt="Logo Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn"
+            width={48}
+            height={48}
+            priority
+            className="h-11 w-11 shrink-0 rounded-full object-contain"
+          />
+          <span className="max-w-52 text-[11px] font-bold leading-tight text-slate-900 sm:max-w-none sm:text-sm">
+            Trung tâm Cung ứng Dịch vụ công
+            <span className="mt-0.5 block text-blue-700">Xã Xuân Sơn</span>
           </span>
         </Link>
 
-        {/* Navigation */}
-        <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
+        <nav className="flex shrink-0 items-center gap-3 text-xs font-medium text-slate-600 sm:gap-6 sm:text-sm">
           <Link href="/#solutions" className="hover:text-blue-600 transition-colors">
             Tính Năng
           </Link>

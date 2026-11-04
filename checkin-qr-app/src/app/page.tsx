@@ -1,9 +1,10 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import { Solutions } from "@/components/Solutions";
 
 export const metadata: Metadata = {
-  title: "AttenDo - Giải Pháp Điểm Danh & Đăng Nhập",
-  description: "Nền tảng điểm danh hiện đại với QR động, FaceID và GPS.",
+  title: "Hệ thống điểm danh | Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn",
+  description: "Hệ thống điểm danh do Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn xây dựng, hỗ trợ QR động, mã PIN và xác thực vị trí GPS.",
 };
 
 export default function HomePage() {
@@ -16,8 +17,19 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
             
             <div>
+              <Image
+                src="/logo/trung-tam-cung-ung-dich-vu-cong-xa-xuan-son.png"
+                alt="Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn"
+                width={144}
+                height={144}
+                priority
+                className="mx-auto mb-6 h-28 w-28 rounded-full object-contain shadow-sm sm:h-36 sm:w-36"
+              />
+              <p className="mb-4 text-sm font-semibold text-blue-800 sm:text-base">
+                Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn
+              </p>
               <div className="inline-block px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200/60 text-blue-700 text-sm font-semibold shadow-sm">
-                Giải pháp điểm danh 2026
+                Hệ thống điểm danh
               </div>
             </div>
             
@@ -27,7 +39,7 @@ export default function HomePage() {
             </h1>
             
             <p className="text-slate-600 text-lg sm:text-xl max-w-2xl leading-relaxed mx-auto">
-              Tối ưu hóa thao tác điểm danh và giám sát sự hiện diện bằng công nghệ nhận diện AI, QR Code động và GPS bán kính.
+              Giải pháp do Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn xây dựng, hỗ trợ điểm danh bằng QR động, mã PIN và xác thực vị trí GPS.
             </p>
 
           </div>
