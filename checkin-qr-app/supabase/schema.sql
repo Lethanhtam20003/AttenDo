@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS events (
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   title VARCHAR(255) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
   status VARCHAR(50) DEFAULT 'active', -- 'draft' | 'active' | 'closed'
 
   -- Cấu hình vị trí (Geofencing)
@@ -26,6 +27,8 @@ CREATE TABLE IF NOT EXISTS events (
 );
 ALTER TABLE events
   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
 
 -- 2. BẢNG MÃ PIN ĐỘNG
 CREATE TABLE IF NOT EXISTS event_pins (
@@ -58,6 +61,9 @@ CREATE TABLE IF NOT EXISTS attendance_records (
 CREATE INDEX IF NOT EXISTS idx_event_pins_event_id ON event_pins(event_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_event_id ON attendance_records(event_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_device   ON attendance_records(event_id, device_id);
+CREATE INDEX IF NOT EXISTS idx_events_active_expiration
+  ON events(expires_at)
+  WHERE status = 'active' AND expires_at IS NOT NULL;
 
 -- ── Row Level Security (RLS) ─────────────────────────────────
 -- Bật RLS (dữ liệu public – anon key có thể đọc/ghi)
@@ -135,14 +141,21 @@ SET search_path = pg_catalog, public
 AS $$
 DECLARE
   event_status TEXT;
+  event_expires_at TIMESTAMPTZ;
 BEGIN
-  SELECT status INTO event_status
+  SELECT status, expires_at
+  INTO event_status, event_expires_at
   FROM public.events
   WHERE id = NEW.event_id
   FOR UPDATE;
 
   IF event_status IS DISTINCT FROM 'active' THEN
     RAISE EXCEPTION 'Event is not active'
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF event_expires_at IS NOT NULL AND event_expires_at <= NOW() THEN
+    RAISE EXCEPTION 'Event has expired'
       USING ERRCODE = 'check_violation';
   END IF;
 

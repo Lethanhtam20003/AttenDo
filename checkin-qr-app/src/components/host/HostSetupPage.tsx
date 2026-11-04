@@ -36,6 +36,10 @@ const moduleDetails: Record<HostSetupModule, { title: string; description: strin
 export function HostSetupPage({ module }: { module: HostSetupModule }) {
   const defaultInterval = module === 'qr-pin' ? PIN_REFRESH_DEFAULT_SECONDS : QR_TOKEN_LIFETIME_SECONDS;
   const [refreshInterval, setRefreshInterval] = useState(String(defaultInterval));
+  const [sessionDurationValue, setSessionDurationValue] = useState('2');
+  const [sessionDurationUnit, setSessionDurationUnit] = useState<'minutes' | 'hours'>('hours');
+  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<{ fieldId: string; placeAfter: boolean } | null>(null);
   const location = useHostSetupLocation();
   const customFields = useCustomFields();
   const settings = {
@@ -44,6 +48,9 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
     dynamicQr: module === 'dynamic-qr',
     dynamicQrIntervalSeconds: Number(refreshInterval),
     pinIntervalSeconds: Number(refreshInterval),
+    sessionDurationMinutes: Math.round(
+      Number(sessionDurationValue) * (sessionDurationUnit === 'hours' ? 60 : 1)
+    ),
   };
   const form = useHostSetupForm(
     location.coordinates,
@@ -94,6 +101,95 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
             placeholder="Ví dụ: Hội thảo Chuyển đổi số 2026, Điểm danh Lớp CNTT K15..."
             className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-base text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
           />
+        </section>
+
+        <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-900">Thời gian tồn tại phiên điểm danh</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Phiên sẽ tự động kết thúc khi hết thời gian đã chọn.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:max-w-xl sm:grid-cols-3">
+            {[
+              { label: '5 phút', minutes: 5 },
+              { label: '15 phút', minutes: 15 },
+              { label: '30 phút', minutes: 30 },
+              { label: '1 giờ', minutes: 60 },
+              { label: '2 giờ', minutes: 120 },
+              { label: '4 giờ', minutes: 240 },
+            ].map((option) => (
+              <button
+                key={option.minutes}
+                type="button"
+                onClick={() => {
+                  if (option.minutes < 60) {
+                    setSessionDurationUnit('minutes');
+                    setSessionDurationValue(String(option.minutes));
+                  } else {
+                    setSessionDurationUnit('hours');
+                    setSessionDurationValue(String(option.minutes / 60));
+                  }
+                }}
+                aria-pressed={
+                  Math.round(
+                    Number(sessionDurationValue) *
+                      (sessionDurationUnit === 'hours' ? 60 : 1)
+                  ) === option.minutes
+                }
+                className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                  Math.round(
+                    Number(sessionDurationValue) *
+                      (sessionDurationUnit === 'hours' ? 60 : 1)
+                  ) === option.minutes
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 max-w-lg">
+            <label htmlFor="session-duration" className="block text-sm font-medium text-slate-700">
+              Hoặc nhập thời lượng
+            </label>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                id="session-duration"
+                type="number"
+                min={sessionDurationUnit === 'hours' ? 1 / 60 : 1}
+                max={sessionDurationUnit === 'hours' ? 168 : 10080}
+                step={sessionDurationUnit === 'hours' ? 0.01 : 1}
+                value={sessionDurationValue}
+                onChange={(event) => setSessionDurationValue(event.target.value)}
+                className="min-h-11 w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+              />
+              <select
+                aria-label="Đơn vị thời lượng phiên"
+                value={sessionDurationUnit}
+                onChange={(event) => {
+                  const nextUnit = event.target.value as 'minutes' | 'hours';
+                  const currentValue = Number(sessionDurationValue);
+                  if (Number.isFinite(currentValue)) {
+                    const convertedValue =
+                      nextUnit === 'minutes' && sessionDurationUnit === 'hours'
+                        ? String(Math.round(currentValue * 60))
+                        : nextUnit === 'hours' && sessionDurationUnit === 'minutes'
+                          ? (currentValue / 60).toFixed(2).replace(/\.?0+$/, '')
+                          : sessionDurationValue;
+                    setSessionDurationValue(convertedValue);
+                  }
+                  setSessionDurationUnit(nextUnit);
+                }}
+                className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-600"
+              >
+                <option value="minutes">Phút</option>
+                <option value="hours">Giờ</option>
+              </select>
+            </div>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Từ 1 phút đến 168 giờ (tối đa 7 ngày). Mặc định: 2 giờ.
+            </p>
+          </div>
         </section>
 
         {(module === 'dynamic-qr' || module === 'qr-pin') && (
@@ -234,10 +330,95 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
           </div>
 
           <div className="mt-4 divide-y divide-slate-100">
+            {customFields.fields.length === 0 && (
+              <p className="py-5 text-center text-sm text-slate-500">
+                Chưa có trường thông tin. Hãy thêm ít nhất một câu hỏi để tạo phiên điểm danh.
+              </p>
+            )}
             {customFields.fields.map((field) => (
-              <div key={field.id} className="flex flex-col justify-between gap-3 py-3 sm:flex-row sm:items-center">
+              <div
+                key={field.id}
+                data-custom-field-row
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  if (draggedFieldId === field.id) {
+                    setDropIndicator(null);
+                    return;
+                  }
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  setDropIndicator({
+                    fieldId: field.id,
+                    placeAfter: event.clientY > bounds.top + bounds.height / 2,
+                  });
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (draggedFieldId && draggedFieldId !== field.id) {
+                    const bounds = event.currentTarget.getBoundingClientRect();
+                    customFields.reorderField(
+                      draggedFieldId,
+                      field.id,
+                      event.clientY > bounds.top + bounds.height / 2
+                    );
+                  }
+                  setDropIndicator(null);
+                  setDraggedFieldId(null);
+                }}
+                className={`relative flex flex-col justify-between gap-3 py-3 sm:flex-row sm:items-center ${
+                  draggedFieldId === field.id ? 'opacity-50' : ''
+                }`}
+              >
+                {dropIndicator?.fieldId === field.id && draggedFieldId !== field.id && (
+                  <div
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute inset-x-0 z-10 flex items-center ${
+                      dropIndicator.placeAfter ? 'bottom-0 translate-y-1/2' : 'top-0 -translate-y-1/2'
+                    }`}
+                  >
+                    <span className="h-2 w-2 rounded-full bg-blue-600" />
+                    <span className="h-0.5 flex-1 bg-blue-600" />
+                    <span className="h-2 w-2 rounded-full bg-blue-600" />
+                  </div>
+                )}
                 <div className="flex flex-1 items-center gap-2">
-                  <GripVertical className="h-4 w-4 shrink-0 text-slate-300" />
+                  <button
+                    type="button"
+                    draggable
+                    aria-label={`Kéo để sắp xếp trường ${field.label}`}
+                    onDragStart={(event) => {
+                      setDraggedFieldId(field.id);
+                      event.dataTransfer.effectAllowed = 'move';
+                      event.dataTransfer.setData('text/plain', field.id);
+                      const row = event.currentTarget.closest<HTMLElement>('[data-custom-field-row]');
+                      if (row) {
+                        const preview = row.cloneNode(true) as HTMLElement;
+                        const bounds = row.getBoundingClientRect();
+                        preview.style.position = 'absolute';
+                        preview.style.top = '-1000px';
+                        preview.style.width = `${bounds.width}px`;
+                        preview.style.padding = '12px 16px';
+                        preview.style.border = '1px solid #e2e8f0';
+                        preview.style.borderRadius = '12px';
+                        preview.style.backgroundColor = '#fff';
+                        preview.style.boxShadow = '0 8px 20px rgb(15 23 42 / 15%)';
+                        preview.style.opacity = '0.95';
+                        document.body.appendChild(preview);
+                        event.dataTransfer.setDragImage(
+                          preview,
+                          event.clientX - bounds.left,
+                          event.clientY - bounds.top
+                        );
+                        window.setTimeout(() => preview.remove(), 0);
+                      }
+                    }}
+                    onDragEnd={() => {
+                      setDraggedFieldId(null);
+                      setDropIndicator(null);
+                    }}
+                    className="shrink-0 cursor-grab text-slate-300 active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </button>
                   <input
                     type="text"
                     aria-label="Tên trường thông tin"
@@ -267,22 +448,19 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
                     <input
                       type="checkbox"
                       checked={field.required}
-                      disabled={field.fixed}
                       onChange={(event) => customFields.updateFieldRequired(field.id, event.target.checked)}
                       className="rounded border-slate-300 text-blue-600 focus:ring-blue-600/20"
                     />
                     <span className="text-xs text-slate-600">Bắt buộc</span>
                   </label>
-                  {!field.fixed && (
-                    <button
-                      type="button"
-                      onClick={() => customFields.removeField(field.id)}
-                      aria-label="Xóa câu hỏi"
-                      className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => customFields.removeField(field.id)}
+                    aria-label="Xóa câu hỏi"
+                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             ))}

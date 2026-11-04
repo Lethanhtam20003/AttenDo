@@ -27,6 +27,7 @@ export function useHostSetupForm(
     dynamicQr: boolean;
     dynamicQrIntervalSeconds: number;
     pinIntervalSeconds: number;
+    sessionDurationMinutes: number;
   }
 ) {
   const router = useRouter();
@@ -38,6 +39,18 @@ export function useHostSetupForm(
     setErrorMsg(null);
     if (!eventTitle.trim()) {
       setErrorMsg('Vui lòng nhập tên sự kiện trước khi khởi chạy.');
+      return;
+    }
+    if (fields.length === 0) {
+      setErrorMsg('Vui lòng thêm ít nhất một trường thông tin người tham dự.');
+      return;
+    }
+    if (
+      !Number.isInteger(checkinSettings.sessionDurationMinutes) ||
+      checkinSettings.sessionDurationMinutes < 1 ||
+      checkinSettings.sessionDurationMinutes > 10080
+    ) {
+      setErrorMsg('Thời gian tồn tại phiên phải từ 1 phút đến 168 giờ.');
       return;
     }
     if (
@@ -70,6 +83,7 @@ export function useHostSetupForm(
 
       const result = await createEvent({
         title: eventTitle.trim(),
+        duration_minutes: checkinSettings.sessionDurationMinutes,
         location_lat: checkinSettings.requireLocation ? coordinates.lat : null,
         location_lng: checkinSettings.requireLocation ? coordinates.lng : null,
         radius_meters: radius,

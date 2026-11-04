@@ -138,14 +138,14 @@ function AttendeeCheckinContent() {
           <ShieldAlert className="w-10 h-10 text-amber-500 mx-auto mb-3" />
           <h2 className="text-base font-bold text-slate-900">Phiên điểm danh đã kết thúc</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Host đã đóng phiên này. Bạn không thể gửi thêm lượt điểm danh.
+            Host đã đóng phiên hoặc phiên đã hết thời gian tồn tại. Bạn không thể gửi thêm lượt điểm danh.
           </p>
         </div>
       </main>
     );
   }
 
-  const dynamicFields = event.custom_fields.filter((f) => f.key !== 'full_name');
+  const dynamicFields = event.custom_fields;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-slate-50 px-4 py-4 sm:py-6">
@@ -216,22 +216,7 @@ function AttendeeCheckinContent() {
         )}
 
         <div className="space-y-3 pt-1">
-          {/* Họ và tên – luôn hiển thị đầu tiên */}
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700 sm:text-xs">
-              Họ và tên <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={form.fieldValues['full_name'] ?? ''}
-              onChange={(e) => form.setFieldValues((prev) => ({ ...prev, full_name: e.target.value }))}
-              placeholder="Nguyễn Văn A"
-              className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
-            />
-          </div>
-
-          {/* Dynamic fields từ event.custom_fields */}
+          {/* Các trường thông tin do Host cấu hình */}
           {dynamicFields.map((field: CustomFieldConfig) => (
             <div key={field.key}>
               <label className="mb-1 block text-sm font-semibold text-slate-700 sm:text-xs">

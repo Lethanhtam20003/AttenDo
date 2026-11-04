@@ -16,11 +16,12 @@ import type {
 
 export type ManagedEvent = Pick<
   Event,
-  'id' | 'title' | 'status' | 'created_at' | 'location_lat' | 'location_lng'
+  'id' | 'title' | 'status' | 'created_at' | 'expires_at' | 'location_lat' | 'location_lng'
 >;
 
 interface CreateEventInput {
   title: string;
+  duration_minutes: number;
   location_lat: number | null;
   location_lng: number | null;
   radius_meters: number;
@@ -42,6 +43,21 @@ export async function createEvent(
   input: CreateEventInput
 ): Promise<ActionResult<{ eventId: string; pin: string | null }>> {
   const user = await verifyAuth();
+  if (
+    !Number.isInteger(input.duration_minutes) ||
+    input.duration_minutes < 1 ||
+    input.duration_minutes > 10080
+  ) {
+    return { success: false, error: 'Thời gian tồn tại phiên phải từ 1 phút đến 168 giờ.' };
+  }
+
+  if (input.custom_fields.length === 0) {
+    return {
+      success: false,
+      error: 'Vui lòng thêm ít nhất một trường thông tin người tham dự.',
+    };
+  }
+
   const qrInterval = input.module_settings.dynamic_qr_interval_seconds;
   if (
     input.module_settings.dynamic_qr &&
@@ -62,6 +78,7 @@ export async function createEvent(
   }
 
   const supabase = await createClient();
+  const expiresAt = new Date(Date.now() + input.duration_minutes * 60 * 1000).toISOString();
 
   // 1. Tạo sự kiện
   const { data: event, error: eventError } = await supabase
@@ -70,6 +87,7 @@ export async function createEvent(
       created_by: user.id,
       title: input.title,
       status: 'active',
+      expires_at: expiresAt,
       location_lat: input.location_lat,
       location_lng: input.location_lng,
       radius_meters: input.radius_meters,
@@ -152,7 +170,7 @@ export async function getManagedEvents(): Promise<ActionResult<ManagedEvent[]>> 
 
   const { data, error } = await supabase
     .from('events')
-    .select('id, title, status, created_at, location_lat, location_lng')
+    .select('id, title, status, created_at, expires_at, location_lat, location_lng')
     .eq('created_by', user.id)
     .order('created_at', { ascending: false });
 

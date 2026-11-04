@@ -84,9 +84,16 @@ export function useCheckinForm({
     setSubmitError(null);
 
     try {
+      const attendeeName = (
+        fieldValues['full_name'] ??
+        event?.custom_fields
+          .map((field) => fieldValues[field.key])
+          .find((value) => value?.trim()) ??
+        ''
+      ).trim();
       const result = await checkIn({
         eventId,
-        fullName: fieldValues['full_name'] ?? '',
+        fullName: attendeeName,
         customData: { ...fieldValues },
         userLat: coords?.lat ?? null,
         userLng: coords?.lng ?? null,
@@ -101,7 +108,6 @@ export function useCheckinForm({
       }
 
       // Lưu dấu trên thiết bị để tránh điểm danh lặp lại cùng một phiên.
-      const attendeeName = (fieldValues['full_name'] ?? '').trim();
       localStorage.setItem(`checkedin_${eventId}`, 'true');
       localStorage.setItem(`checkedin_name_${eventId}`, attendeeName);
       setCheckedInName(attendeeName);

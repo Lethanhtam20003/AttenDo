@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
-import { AlertTriangle, CheckCircle2, Download, Loader2, MapPin, Maximize2, QrCode, Share2, ShieldCheck, Users, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock3, Download, Loader2, MapPin, Maximize2, QrCode, Share2, ShieldCheck, Users, X } from 'lucide-react';
 import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
 import {
   getPinRefreshSeconds,
@@ -11,12 +11,20 @@ import {
 } from '@/constants/checkin';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
 
+function formatSessionCountdown(seconds: number) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return [hours, minutes, remainingSeconds].map((value) => String(value).padStart(2, '0')).join(':');
+}
+
 function HostLiveContent() {
   const { eventId } = useParams<{ eventId: string }>();
   const {
     event,
     pin,
     timeLeft,
+    sessionTimeLeft,
     checkinUrl,
     qrTimeLeft,
     qrError,
@@ -107,6 +115,16 @@ function HostLiveContent() {
                 {event?.title || 'Đang kết nối sự kiện...'}
               </h1>
               <span className="block truncate text-xs text-slate-400">Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn · Phiên #{eventId}</span>
+              {event?.expires_at && (
+                <span className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                  <Clock3 className="h-3 w-3 shrink-0" />
+                  {event.status === 'active' && sessionTimeLeft !== null
+                    ? `Còn ${formatSessionCountdown(sessionTimeLeft)} · `
+                    : ''}
+                  {event.status === 'active' ? 'Tự kết thúc lúc ' : 'Thời hạn phiên: '}
+                  {new Date(event.expires_at).toLocaleString('vi-VN')}
+                </span>
+              )}
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useCallback, useEffect, useState } from 'react';
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import { rotatePin, getCurrentPin } from '@/actions/pins';
 import { endEvent, getEvent } from '@/actions/events';
@@ -17,11 +17,13 @@ export function useHostLiveSession(eventId?: string) {
   const [event, setEvent] = useState<Event | null>(null);
   const [pin, setPin] = useState('----');
   const [timeLeft, setTimeLeft] = useState(PIN_LIFETIME_SECONDS);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState<number | null>(null);
   const [checkinUrl, setCheckinUrl] = useState('');
   const [qrTimeLeft, setQrTimeLeft] = useState(QR_TOKEN_LIFETIME_SECONDS);
   const [qrError, setQrError] = useState<string | null>(null);
   const [isEnding, setIsEnding] = useState(false);
   const [endError, setEndError] = useState<string | null>(null);
+  const expirationEndRequested = useRef(false);
 
   const refreshDynamicQr = useCallback(async (refreshSeconds: number) => {
     if (!eventId) return;
@@ -104,6 +106,12 @@ export function useHostLiveSession(eventId?: string) {
     try {
       const result = await endEvent(eventId);
       if (!result.success) {
+        const latestEvent = await getEvent(eventId);
+        if (latestEvent?.status === 'closed') {
+          setEvent(latestEvent as Event);
+          setEndError(null);
+          return true;
+        }
         setEndError(result.error);
         return false;
       }
@@ -117,6 +125,34 @@ export function useHostLiveSession(eventId?: string) {
       setIsEnding(false);
     }
   }, [event?.status, eventId, isEnding]);
+
+  useEffect(() => {
+    expirationEndRequested.current = false;
+  }, [eventId]);
+
+  useEffect(() => {
+    if (!event || event.status !== 'active' || !event.expires_at) {
+      return;
+    }
+
+    const expiresAt = event.expires_at;
+    const updateTimeLeft = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000)
+      );
+      setSessionTimeLeft(remaining);
+
+      if (remaining === 0 && !expirationEndRequested.current) {
+        expirationEndRequested.current = true;
+        void handleEndEvent();
+      }
+    };
+
+    updateTimeLeft();
+    const timer = window.setInterval(updateTimeLeft, 1000);
+    return () => window.clearInterval(timer);
+  }, [event, handleEndEvent]);
 
   useEffect(() => {
     if (!eventId || event?.status !== 'active' || event.module_settings?.require_pin === false) return;
@@ -184,5 +220,6 @@ export function useHostLiveSession(eventId?: string) {
     handleEndEvent,
     isEnding,
     endError,
+    sessionTimeLeft: event?.status === 'active' && event.expires_at ? sessionTimeLeft : null,
   };
 }

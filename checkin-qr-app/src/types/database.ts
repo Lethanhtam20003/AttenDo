@@ -27,6 +27,7 @@ export interface Event {
   created_by: string | null;
   title: string;
   created_at: string;
+  expires_at: string | null;
   status: 'draft' | 'active' | 'closed';
 
   location_lat: number | null;
