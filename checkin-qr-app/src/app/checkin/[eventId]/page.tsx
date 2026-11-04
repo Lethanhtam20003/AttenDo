@@ -223,7 +223,7 @@ function AttendeeCheckinContent() {
               value={form.fieldValues['full_name'] ?? ''}
               onChange={(e) => form.setFieldValues((prev) => ({ ...prev, full_name: e.target.value }))}
               placeholder="Nguyễn Văn A"
-              className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
+              className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
             />
           </div>
 
@@ -240,7 +240,7 @@ function AttendeeCheckinContent() {
                 value={form.fieldValues[field.key] ?? ''}
                 onChange={(e) => form.setFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
                 placeholder={`Nhập ${field.label.toLowerCase()}...`}
-                className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
+                className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
               />
             </div>
           ))}
@@ -259,7 +259,7 @@ function AttendeeCheckinContent() {
                 value={form.pinInput}
                 onChange={(e) => form.setPinInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="----"
-                className="min-h-14 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-center font-mono text-3xl font-black tracking-[0.5em] transition-colors placeholder:text-slate-300 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10"
+                className="min-h-14 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-center font-mono text-3xl font-black tracking-[0.5em] text-slate-900 transition-colors placeholder:text-slate-300 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10"
               />
               <p className="text-[11px] text-slate-400 mt-1 text-center">
                 Nhìn lên màn chiếu của Host để lấy mã gồm 4 số.

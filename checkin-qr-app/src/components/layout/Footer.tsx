@@ -10,7 +10,7 @@ export default function Footer() {
             Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn
           </span>
         </p>
-        <Link href="/#contact" className="font-semibold text-blue-700 hover:text-blue-900">
+        <Link href="/contact" className="font-semibold text-blue-700 hover:text-blue-900">
           Thông tin liên hệ
         </Link>
       </div>

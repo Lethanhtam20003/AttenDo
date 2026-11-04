@@ -156,8 +156,8 @@ export default function HostManagementPage() {
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(300px,0.8fr)_minmax(0,1.7fr)]">
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 p-5">
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:flex lg:h-[460px] lg:flex-col">
+            <div className="shrink-0 border-b border-slate-100 p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="font-semibold text-slate-900">Các phiên điểm danh</h2>
@@ -174,12 +174,12 @@ export default function HostManagementPage() {
                   value={eventSearch}
                   onChange={(event) => setEventSearch(event.target.value)}
                   placeholder="Tìm tên phiên..."
-                  className="min-w-0 flex-1 outline-none placeholder:text-slate-400"
+                  className="min-w-0 flex-1 text-slate-900 outline-none placeholder:text-slate-400"
                 />
               </label>
             </div>
 
-            <div className="max-h-[60dvh] overflow-y-auto p-3 lg:max-h-[650px]">
+            <div className="max-h-[60dvh] overflow-y-auto p-3 lg:min-h-0 lg:max-h-none lg:flex-1">
               {isLoadingEvents ? (
                 <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -311,7 +311,7 @@ export default function HostManagementPage() {
                         value={attendeeSearch}
                         onChange={(event) => setAttendeeSearch(event.target.value)}
                         placeholder="Tìm theo tên hoặc thông tin..."
-                        className="min-w-0 flex-1 outline-none placeholder:text-slate-400"
+                        className="min-w-0 flex-1 text-slate-900 outline-none placeholder:text-slate-400"
                       />
                     </label>
                   </div>

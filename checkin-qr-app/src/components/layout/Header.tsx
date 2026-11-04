@@ -31,7 +31,7 @@ export default async function Header() {
           <Link href="/#services" className="transition-colors hover:text-blue-600">Dịch vụ</Link>
           <Link href="/#solutions" className="transition-colors hover:text-blue-600">Giải pháp</Link>
           <Link href="/#about" className="transition-colors hover:text-blue-600">Giới thiệu</Link>
-          <Link href="/#contact" className="transition-colors hover:text-blue-600">Liên hệ</Link>
+          <Link href="/contact" className="transition-colors hover:text-blue-600">Liên hệ</Link>
           {user && (
               <Link
                 href="/host/manage"
@@ -69,7 +69,7 @@ export default async function Header() {
             <Link href="/#services" className="rounded-xl px-3 py-3 hover:bg-slate-50">Dịch vụ</Link>
             <Link href="/#solutions" className="rounded-xl px-3 py-3 hover:bg-slate-50">Giải pháp</Link>
             <Link href="/#about" className="rounded-xl px-3 py-3 hover:bg-slate-50">Giới thiệu</Link>
-            <Link href="/#contact" className="rounded-xl px-3 py-3 hover:bg-slate-50">Liên hệ</Link>
+            <Link href="/contact" className="rounded-xl px-3 py-3 hover:bg-slate-50">Liên hệ</Link>
             {user ? (
               <>
                 <Link href="/host/manage" className="rounded-xl px-3 py-3 hover:bg-slate-50">Quản lý</Link>
