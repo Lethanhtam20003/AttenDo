@@ -44,8 +44,8 @@ export function useHostSetupForm(
 
       const result = await createEvent({
         title: eventTitle.trim(),
-        location_lat: coordinates.lat,
-        location_lng: coordinates.lng,
+        location_lat: checkinSettings.requireLocation ? coordinates.lat : null,
+        location_lng: checkinSettings.requireLocation ? coordinates.lng : null,
         radius_meters: radius,
         custom_fields: customFields,
         module_settings: {

@@ -39,8 +39,23 @@ export async function proxy(request: NextRequest) {
     throw new Error(`Unable to verify authenticated user: ${error.message}`);
   }
 
+  if (request.nextUrl.pathname === '/auth' && user) {
+    const next = request.nextUrl.searchParams.get('next');
+    const destination = next?.startsWith('/host/') ? next : '/host/gps/setup';
+    const redirectResponse = NextResponse.redirect(new URL(destination, request.url));
+    supabaseResponse.cookies
+      .getAll()
+      .forEach((cookie) => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
+  }
+
   if (!user) {
-    const redirectResponse = NextResponse.redirect(new URL('/auth', request.url));
+    const loginUrl = new URL('/auth', request.url);
+    loginUrl.searchParams.set(
+      'next',
+      `${request.nextUrl.pathname}${request.nextUrl.search}`
+    );
+    const redirectResponse = NextResponse.redirect(loginUrl);
     supabaseResponse.cookies
       .getAll()
       .forEach((cookie) => redirectResponse.cookies.set(cookie));
@@ -51,5 +66,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/host/:path*'],
+  matcher: ['/auth', '/host/:path*'],
 };

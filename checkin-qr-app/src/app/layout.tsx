@@ -9,8 +9,12 @@ import { Analytics } from "@vercel/analytics/next"
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Trang web của tôi',
-  description: 'Mô tả chung cho SEO',
+  title: 'Hệ thống điểm danh | Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn',
+  description: 'Hệ thống điểm danh do Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn xây dựng.',
+  icons: {
+    icon: '/logo/trung-tam-cung-ung-dich-vu-cong-xa-xuan-son.png',
+    shortcut: '/logo/trung-tam-cung-ung-dich-vu-cong-xa-xuan-son.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -1,22 +1,26 @@
 'use client';
 
 import { useActionState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowRight, Lock, Mail } from 'lucide-react';
 import { login } from '@/actions/auth';
 
 const initialState = { error: null };
 
 export const LoginForm = () => {
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('next');
   const [state, formAction, isPending] = useActionState(login, initialState);
 
   return (
-    <div id="login" className="bg-white p-7 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm">
+    <div id="login" className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
       <div className="mb-6">
         <h3 className="text-xl font-bold text-slate-900">Đăng Nhập Hệ Thống</h3>
         <p className="text-xs text-slate-500 mt-1">Đăng nhập bằng tài khoản được cấp bởi quản trị viên.</p>
       </div>
 
       <form action={formAction} className="space-y-4">
+        {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5">
             Email
@@ -30,7 +34,7 @@ export const LoginForm = () => {
               required
               disabled={isPending}
               placeholder="admin@attendo.vn"
-              className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+              className="min-h-12 w-full rounded-xl border border-slate-200/80 bg-slate-50 py-2.5 pl-9 pr-3.5 text-base text-slate-800 transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 sm:min-h-11 sm:text-sm"
             />
           </div>
         </div>
@@ -50,7 +54,7 @@ export const LoginForm = () => {
               required
               disabled={isPending}
               placeholder="••••••••"
-              className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+              className="min-h-12 w-full rounded-xl border border-slate-200/80 bg-slate-50 py-2.5 pl-9 pr-3.5 text-base text-slate-800 transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 sm:min-h-11 sm:text-sm"
             />
           </div>
         </div>
@@ -64,7 +68,7 @@ export const LoginForm = () => {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+          className="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98]"
         >
           <span>{isPending ? 'Đang đăng nhập...' : 'Vào bảng điều khiển'}</span>
           {!isPending && <ArrowRight className="w-4 h-4" />}

@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
-import { AlertTriangle, CheckCircle2, Download, Loader2, QrCode, ShieldCheck, Users, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, Loader2, MapPin, Maximize2, QrCode, Share2, ShieldCheck, Users, X } from 'lucide-react';
 import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
 import { PIN_LIFETIME_SECONDS, QR_TOKEN_LIFETIME_SECONDS } from '@/constants/checkin';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
@@ -24,25 +24,87 @@ function HostLiveContent() {
   } = useHostLiveSession(eventId);
   const { logs, newAttendeeId, handleExportExcel } = useAttendanceBoard(eventId, event);
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [isSharingQr, setIsSharingQr] = useState(false);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [copyFallbackUrl, setCopyFallbackUrl] = useState(false);
+
+  const handleShareQr = async () => {
+    if (!checkinUrl || isSharingQr) return;
+
+    setIsSharingQr(true);
+    setShareMessage(null);
+    setShareError(null);
+    setCopyFallbackUrl(false);
+
+    try {
+      const canvas = document.getElementById('checkin-qr-code');
+      if (!(canvas instanceof HTMLCanvasElement)) {
+        throw new Error('Chưa có mã QR để chia sẻ. Vui lòng đợi mã QR tải xong.');
+      }
+
+      const image = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Không thể tạo ảnh mã QR để chia sẻ.'));
+        }, 'image/png');
+      });
+
+      const qrFile = new File([image], 'ma-diem-danh.png', { type: 'image/png' });
+      const shareData: ShareData = {
+        title: `Mã QR điểm danh - ${event?.title ?? 'Phiên điểm danh'}`,
+        text: `Quét mã QR để điểm danh${event?.title ? `: ${event.title}` : ''}.`,
+        url: checkinUrl,
+      };
+
+      if (navigator.share && navigator.canShare?.({ files: [qrFile] })) {
+        await navigator.share({ ...shareData, files: [qrFile] });
+        setShareMessage('Đã mở bảng chia sẻ. Chọn Zalo để gửi ảnh mã QR.');
+      } else if (navigator.share) {
+        await navigator.share(shareData);
+        setShareMessage('Đã mở bảng chia sẻ. Chọn Zalo để gửi liên kết check-in.');
+      } else {
+        await navigator.clipboard.writeText(checkinUrl);
+        setShareMessage('Thiết bị chưa hỗ trợ chia sẻ trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
+
+      try {
+        await navigator.clipboard.writeText(checkinUrl);
+        setShareMessage('Không thể chia sẻ mã QR trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
+      } catch {
+        setShareError(
+          error instanceof Error
+            ? `${error.message} Không thể mở chia sẻ hoặc sao chép liên kết trên thiết bị này.`
+            : 'Không thể chia sẻ mã QR hoặc sao chép liên kết trên thiết bị này.'
+        );
+        setCopyFallbackUrl(true);
+      }
+    } finally {
+      setIsSharingQr(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header Glassmorphism */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-6 py-3.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 px-3 py-3 backdrop-blur-md sm:px-6 sm:py-3.5">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
               Q
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight">
+              <h1 className="break-words text-sm font-bold tracking-tight text-slate-900">
                 {event?.title || 'Đang kết nối sự kiện...'}
               </h1>
-              <span className="text-xs text-slate-400 font-mono">Phiên: #{eventId}</span>
+              <span className="block truncate text-xs text-slate-400">Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn · Phiên #{eventId}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {/* <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Supabase Realtime Live
@@ -50,7 +112,7 @@ function HostLiveContent() {
             <button
               type="button"
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 sm:flex-none sm:px-4"
             >
               <Download className="w-3.5 h-3.5" />
               Xuất file (.csv / Excel)
@@ -64,7 +126,7 @@ function HostLiveContent() {
               <button
                 type="button"
                 onClick={() => setShowEndConfirmation(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 sm:flex-none sm:px-4"
               >
                 Kết thúc điểm danh
               </button>
@@ -135,11 +197,56 @@ function HostLiveContent() {
         </div>
       )}
 
+      {showQrModal && checkinUrl && event?.status === 'active' && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+          onMouseDown={(mouseEvent) => {
+            if (mouseEvent.target === mouseEvent.currentTarget) setShowQrModal(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="enlarged-qr-title"
+            className="w-full max-w-lg rounded-3xl bg-white p-5 text-center shadow-2xl sm:p-8"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <h2 id="enlarged-qr-title" className="text-lg font-bold text-slate-900">
+                Mã QR điểm danh
+              </h2>
+              <button
+                type="button"
+                aria-label="Đóng mã QR phóng to"
+                onClick={() => setShowQrModal(false)}
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-5 flex w-full justify-center rounded-2xl border border-slate-200 bg-white p-3">
+              <QRCodeCanvas
+                value={checkinUrl}
+                size={360}
+                level="M"
+                includeMargin
+                aria-label="Mã QR điểm danh phóng to"
+                className="h-auto w-full max-w-[360px]"
+              />
+            </div>
+            {event.module_settings?.dynamic_qr === true && (
+              <p className="mt-3 text-xs font-medium text-amber-700">
+                Mã tự làm mới sau {qrTimeLeft}s. Hãy quét mã đang hiển thị trên màn hình.
+              </p>
+            )}
+          </section>
+        </div>
+      )}
+
       {/* Main Grid: Máy chiếu & Trực tiếp */}
-      <main className="max-w-7xl mx-auto p-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 items-stretch gap-6">
+      <main className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 items-stretch gap-4 p-3 sm:gap-6 sm:p-6 lg:grid-cols-12">
         {/* Cột trái: QR Code & Dynamic PIN (Chiếm một nửa màn hình) */}
         <div className="lg:col-span-6 flex flex-col">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex-1 flex flex-col items-center text-center">
+          <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-200/80 bg-white p-4 text-center shadow-sm sm:p-6">
             {event?.status === 'closed' ? (
               <div className="flex flex-1 flex-col items-center justify-center py-12">
                 <CheckCircle2 className="h-12 w-12 text-emerald-600" />
@@ -159,6 +266,7 @@ function HostLiveContent() {
             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-inner mb-3">
               {checkinUrl ? (
                 <QRCodeCanvas
+                  id="checkin-qr-code"
                   value={checkinUrl}
                   size={200}
                   level="M"
@@ -171,6 +279,53 @@ function HostLiveContent() {
                 </div>
               )}
             </div>
+            <div className="mb-3 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <button
+                type="button"
+                onClick={() => setShowQrModal(true)}
+                disabled={!checkinUrl}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Maximize2 className="h-4 w-4" />
+                Phóng to mã QR
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleShareQr()}
+                disabled={!checkinUrl || isSharingQr}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSharingQr ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                {isSharingQr ? 'Đang mở chia sẻ...' : 'Chia sẻ QR / Zalo'}
+              </button>
+            </div>
+            {shareMessage && (
+              <p role="status" className="mb-2 max-w-md text-xs text-emerald-700">
+                {shareMessage}
+              </p>
+            )}
+            {shareError && (
+              <div className="mb-2 max-w-md">
+                <p role="alert" className="text-xs text-rose-700">{shareError}</p>
+                {copyFallbackUrl && (
+                  <input
+                    aria-label="Liên kết check-in để sao chép thủ công"
+                    readOnly
+                    value={checkinUrl}
+                    onFocus={(inputEvent) => inputEvent.currentTarget.select()}
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900"
+                  />
+                )}
+              </div>
+            )}
+            {event?.module_settings?.require_location === true && (
+              <div className="mb-3 flex max-w-md items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-left">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" />
+                <p className="text-xs leading-relaxed text-blue-900">
+                  <strong>Nhắc người tham dự:</strong> cần bật Dịch vụ vị trí và cho phép Zalo/trình duyệt truy cập vị trí để điểm danh. iPhone: bật tại Cài đặt → Quyền riêng tư &amp; Bảo mật → Dịch vụ định vị. Android: bật Vị trí trong Cài đặt và cấp quyền vị trí cho ứng dụng đang quét QR.
+                </p>
+              </div>
+            )}
             {checkinUrl && (
               event?.module_settings?.dynamic_qr === true ? (
                 <p className="text-xs text-slate-500">
@@ -181,6 +336,11 @@ function HostLiveContent() {
                   {checkinUrl}
                 </p>
               )
+            )}
+            {event?.module_settings?.dynamic_qr === true && (
+              <p className="mt-2 max-w-md text-[11px] leading-relaxed text-amber-700">
+                Mã QR động chỉ có hiệu lực trong thời gian ngắn. Người nhận cần quét ngay; khi chia sẻ mã, hãy gửi ảnh QR hiện tại.
+              </p>
             )}
             {qrError && (
               <p role="alert" className="mt-2 text-xs text-rose-600">
@@ -223,7 +383,7 @@ function HostLiveContent() {
         </div>
 
         <div className="lg:col-span-6 flex flex-col">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex-1 flex flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Users className="w-5 h-5 text-blue-600" />

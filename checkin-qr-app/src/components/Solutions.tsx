@@ -1,57 +1,60 @@
-import { QrCode, ScanFace, MapPin } from "lucide-react";
+import { QrCode, Hash, MapPin } from "lucide-react";
+import Link from "next/link";
 
 export const Solutions = () => {
   const solutions = [
     {
       icon: <QrCode className="w-6 h-6 text-blue-600" />,
-      title: "1. Dynamic QR Code",
-      desc: "Mã QR tự động đổi sau mỗi vài giây, ngăn chặn triệt để chụp ảnh màn hình gửi điểm danh hộ.",
-      link: "/test-qr",
+      title: "QR động",
+      desc: "Mã QR tự làm mới theo thời gian, giúp hạn chế việc dùng ảnh chụp để điểm danh hộ.",
+      link: "/host/dynamic-qr/setup",
     },
     {
       icon: <MapPin className="w-6 h-6 text-blue-600" />,
-      title: "2. Khoanh Vùng Vị Trí GPS",
-      desc: "Giới hạn phạm vi điểm danh theo tọa độ địa lý, tự động phát hiện ứng dụng can thiệp GPS ảo.",
-      link: "/test-location",
+      title: "Xác thực vị trí GPS",
+      desc: "Thiết lập vị trí và bán kính cho phép người tham dự check-in tại địa điểm tổ chức.",
+      link: "/host/gps/setup",
     },
     {
-      icon: <ScanFace className="w-6 h-6 text-blue-600" />,
-      title: "3. Tạo mã Qr + xác minh địa chỉ",
-      desc: "Xác minh địa chỉ.",
-      link: "/host/setup",
+      icon: (
+        <span className="flex items-center gap-0.5 text-blue-600" aria-hidden="true">
+          <QrCode className="h-5 w-5" />
+          <Hash className="h-4 w-4" />
+        </span>
+      ),
+      title: "QR kết hợp mã PIN",
+      desc: "Xác nhận lượt điểm danh bằng cách quét QR và nhập mã PIN hiển thị trên màn hình Host.",
+      link: "/host/qr-pin/setup",
     },
   ];
 
   return (
-    <section id="solutions" className="py-20 bg-slate-50 border-t border-slate-200/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mb-12">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-blue-600 mb-2">
-            Tính năng cốt lõi
-          </h2>
-          <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Các Giải Pháp Điểm Danh
-          </h3>
-          <p className="text-slate-600 text-sm mt-2">
-            Đa dạng hình thức xác thực, thích ứng linh hoạt từ lớp học đến chuỗi doanh nghiệp.
+    <section id="solutions" className="scroll-mt-24 border-t border-slate-200/80 bg-slate-50 py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-9 max-w-2xl sm:mb-12">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-blue-600">Các phương thức xác thực</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Chọn giải pháp điểm danh</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Ba phương thức cấu hình cho hệ thống điểm danh đang được Trung tâm triển khai.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {solutions.map((item, index) => (
-            <a
-              key={index}
-              className="p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between"
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          {solutions.map((item) => (
+            <Link
+              key={item.link}
+              className="group flex min-h-56 flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/20 sm:p-6"
               href={item.link}
             >
               <div>
-                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-5">
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
                   {item.icon}
                 </div>
-                <h4 className="text-base font-bold text-slate-900 mb-2">{item.title}</h4>
-                <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+                <h3 className="mb-2 text-base font-bold text-slate-900">{item.title}</h3>
+                <p className="text-sm leading-relaxed text-slate-600">{item.desc}</p>
               </div>
-            </a>
+              <span className="mt-5 text-sm font-semibold text-blue-700">Thiết lập giải pháp <span aria-hidden="true">→</span></span>
+            </Link>
           ))}
         </div>
       </div>
