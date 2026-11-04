@@ -5,6 +5,7 @@ import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ConditionalLayoutChrome from '@/components/layout/ConditionalLayoutChrome';
+import { Analytics } from "@vercel/analytics/next"
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="vi">
       <body className={`${inter.className} flex min-h-screen flex-col`}>
+        <Analytics />
         <Suspense fallback={null}>
           <ConditionalLayoutChrome
           >
