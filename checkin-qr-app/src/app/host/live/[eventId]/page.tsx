@@ -28,21 +28,21 @@ function HostLiveContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header Glassmorphism */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-6 py-3.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 px-3 py-3 backdrop-blur-md sm:px-6 sm:py-3.5">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
               Q
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight">
+              <h1 className="break-words text-sm font-bold tracking-tight text-slate-900">
                 {event?.title || 'Đang kết nối sự kiện...'}
               </h1>
-              <span className="text-xs text-slate-400 font-mono">Phiên: #{eventId}</span>
+              <span className="block truncate text-xs text-slate-400">Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn · Phiên #{eventId}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {/* <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Supabase Realtime Live
@@ -50,7 +50,7 @@ function HostLiveContent() {
             <button
               type="button"
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 sm:flex-none sm:px-4"
             >
               <Download className="w-3.5 h-3.5" />
               Xuất file (.csv / Excel)
@@ -64,7 +64,7 @@ function HostLiveContent() {
               <button
                 type="button"
                 onClick={() => setShowEndConfirmation(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 sm:flex-none sm:px-4"
               >
                 Kết thúc điểm danh
               </button>
@@ -136,10 +136,10 @@ function HostLiveContent() {
       )}
 
       {/* Main Grid: Máy chiếu & Trực tiếp */}
-      <main className="max-w-7xl mx-auto p-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 items-stretch gap-6">
+      <main className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 items-stretch gap-4 p-3 sm:gap-6 sm:p-6 lg:grid-cols-12">
         {/* Cột trái: QR Code & Dynamic PIN (Chiếm một nửa màn hình) */}
         <div className="lg:col-span-6 flex flex-col">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex-1 flex flex-col items-center text-center">
+          <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-200/80 bg-white p-4 text-center shadow-sm sm:p-6">
             {event?.status === 'closed' ? (
               <div className="flex flex-1 flex-col items-center justify-center py-12">
                 <CheckCircle2 className="h-12 w-12 text-emerald-600" />
@@ -223,7 +223,7 @@ function HostLiveContent() {
         </div>
 
         <div className="lg:col-span-6 flex flex-col">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex-1 flex flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Users className="w-5 h-5 text-blue-600" />

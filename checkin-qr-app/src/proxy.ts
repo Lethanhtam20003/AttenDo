@@ -40,7 +40,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!user) {
-    const redirectResponse = NextResponse.redirect(new URL('/auth', request.url));
+    const loginUrl = new URL('/auth', request.url);
+    loginUrl.searchParams.set(
+      'next',
+      `${request.nextUrl.pathname}${request.nextUrl.search}`
+    );
+    const redirectResponse = NextResponse.redirect(loginUrl);
     supabaseResponse.cookies
       .getAll()
       .forEach((cookie) => redirectResponse.cookies.set(cookie));

@@ -46,7 +46,7 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6">
-      <div className="mx-auto mb-8 flex max-w-4xl items-center justify-between gap-4">
+      <div className="mx-auto mb-8 flex max-w-4xl flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-medium text-blue-700">
             {module === 'gps' ? <MapPin className="h-4 w-4" /> : module === 'dynamic-qr' ? <QrCode className="h-4 w-4" /> : <ScanFace className="h-4 w-4" />}
@@ -59,7 +59,7 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
           type="button"
           onClick={form.handleLaunch}
           disabled={form.isPending}
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60"
+          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60 sm:min-h-11"
         >
           {form.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
           {form.isPending ? 'Đang khởi tạo...' : 'Khởi chạy màn hình'}
@@ -83,7 +83,7 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
             value={form.eventTitle}
             onChange={(event) => form.setEventTitle(event.target.value)}
             placeholder="Ví dụ: Hội thảo Chuyển đổi số 2026, Điểm danh Lớp CNTT K15..."
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+            className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-base text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 sm:min-h-11 sm:text-sm"
           />
         </section>
 

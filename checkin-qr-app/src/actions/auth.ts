@@ -30,7 +30,13 @@ export async function login(
     return { error: 'Email hoặc mật khẩu không chính xác.' };
   }
 
-  redirect('/host/gps/setup');
+  const returnTo = formData.get('returnTo');
+  const destination =
+    typeof returnTo === 'string' && returnTo.startsWith('/host/')
+      ? returnTo
+      : '/host/gps/setup';
+
+  redirect(destination);
 }
 
 export async function logout() {

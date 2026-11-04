@@ -113,12 +113,12 @@ export default function HostManagementPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-600">ATTENDO / QUẢN LÝ</p>
+            <p className="text-sm font-semibold text-blue-600">HỆ THỐNG ĐIỂM DANH / QUẢN LÝ</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Quản lý cuộc họp
+              Quản lý phiên điểm danh
             </h1>
             <p className="mt-2 text-sm text-slate-500">
-              Xem các phiên điểm danh và danh sách người tham dự của từng phiên.
+              Theo dõi trạng thái phiên và danh sách người tham dự.
             </p>
           </div>
           <Link
@@ -126,7 +126,7 @@ export default function HostManagementPage() {
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
-            Tạo cuộc họp
+            Tạo phiên
           </Link>
         </div>
 
@@ -134,7 +134,7 @@ export default function HostManagementPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Tổng cuộc họp</p>
+                <p className="text-sm text-slate-500">Tổng phiên</p>
                 <p className="mt-1 text-2xl font-bold text-slate-900">{events.length}</p>
               </div>
               <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
@@ -145,7 +145,7 @@ export default function HostManagementPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Đang diễn ra</p>
+                <p className="text-sm text-slate-500">Đang điểm danh</p>
                 <p className="mt-1 text-2xl font-bold text-emerald-600">{activeCount}</p>
               </div>
               <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
@@ -160,8 +160,8 @@ export default function HostManagementPage() {
             <div className="border-b border-slate-100 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="font-semibold text-slate-900">Các cuộc họp</h2>
-                  <p className="mt-1 text-xs text-slate-500">Chọn một cuộc họp để xem người tham dự</p>
+                  <h2 className="font-semibold text-slate-900">Các phiên điểm danh</h2>
+                  <p className="mt-1 text-xs text-slate-500">Chọn một phiên để xem người tham dự</p>
                 </div>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
                   {events.length}
@@ -170,16 +170,16 @@ export default function HostManagementPage() {
               <label className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus-within:border-blue-500">
                 <Search className="h-4 w-4 shrink-0 text-slate-400" />
                 <input
-                  aria-label="Tìm cuộc họp"
+                  aria-label="Tìm phiên điểm danh"
                   value={eventSearch}
                   onChange={(event) => setEventSearch(event.target.value)}
-                  placeholder="Tìm tên cuộc họp..."
+                  placeholder="Tìm tên phiên..."
                   className="min-w-0 flex-1 outline-none placeholder:text-slate-400"
                 />
               </label>
             </div>
 
-            <div className="max-h-[650px] overflow-y-auto p-3">
+            <div className="max-h-[60dvh] overflow-y-auto p-3 lg:max-h-[650px]">
               {isLoadingEvents ? (
                 <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -203,11 +203,11 @@ export default function HostManagementPage() {
                 <div className="px-4 py-12 text-center">
                   <CalendarDays className="mx-auto h-8 w-8 text-slate-300" />
                   <p className="mt-3 text-sm font-medium text-slate-700">
-                    {events.length ? 'Không tìm thấy cuộc họp phù hợp' : 'Chưa có cuộc họp nào'}
+                    {events.length ? 'Không tìm thấy phiên phù hợp' : 'Chưa có phiên nào'}
                   </p>
                   {!events.length && (
                     <Link href="/host/gps/setup" className="mt-2 inline-block text-sm font-semibold text-blue-600 hover:underline">
-                      Tạo cuộc họp đầu tiên
+                      Tạo phiên đầu tiên
                     </Link>
                   )}
                 </div>
@@ -252,24 +252,24 @@ export default function HostManagementPage() {
             </div>
           </section>
 
-          <section className="min-h-[460px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <section className="min-h-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:min-h-[460px]">
             {isLoadingAttendance ? (
-              <div className="flex min-h-[460px] flex-col items-center justify-center gap-3 text-sm text-slate-500">
+              <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-slate-500 sm:min-h-[460px]">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                 Đang tải danh sách người tham dự...
               </div>
             ) : attendanceError ? (
-              <div className="flex min-h-[460px] items-center justify-center p-8 text-center">
+              <div className="flex min-h-[320px] items-center justify-center p-8 text-center sm:min-h-[460px]">
                 <p role="alert" className="max-w-md text-sm text-rose-700">{attendanceError}</p>
               </div>
             ) : !selected ? (
-              <div className="flex min-h-[460px] flex-col items-center justify-center p-8 text-center">
+              <div className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center sm:min-h-[460px]">
                 <div className="rounded-2xl bg-blue-50 p-4 text-blue-600">
                   <Users className="h-7 w-7" />
                 </div>
                 <h2 className="mt-4 font-semibold text-slate-900">Danh sách người tham dự</h2>
                 <p className="mt-1 max-w-sm text-sm text-slate-500">
-                  Chọn một cuộc họp ở danh sách bên trái để xem thông tin check-in.
+                Chọn một phiên ở danh sách để xem thông tin điểm danh.
                 </p>
               </div>
             ) : (
@@ -278,7 +278,7 @@ export default function HostManagementPage() {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                        Chi tiết cuộc họp
+                        Chi tiết phiên điểm danh
                       </span>
                       <h2 className="mt-1 truncate text-xl font-bold text-slate-900">{selected.event.title}</h2>
                       <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
@@ -330,7 +330,37 @@ export default function HostManagementPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                    <ul className="divide-y divide-slate-100 md:hidden">
+                      {filteredAttendees.map((attendee) => (
+                        <li key={attendee.id} className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="break-words font-semibold text-slate-900">{attendee.full_name}</p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {formatDate(attendee.checked_in_at)}
+                              </p>
+                            </div>
+                            {attendee.distance_meters !== null && (
+                              <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                                {attendee.distance_meters} m
+                              </span>
+                            )}
+                          </div>
+                          {customFields.length > 0 && (
+                            <dl className="mt-3 grid gap-2 border-t border-slate-100 pt-3">
+                              {customFields.map((field) => (
+                                <div key={field.key} className="flex flex-col gap-0.5 text-sm sm:flex-row sm:justify-between">
+                                  <dt className="text-xs text-slate-500">{field.label}</dt>
+                                  <dd className="break-words text-slate-700">{attendee.custom_data?.[field.key] || '—'}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="hidden overflow-x-auto md:block">
                     <table className="w-full min-w-[640px] text-left text-sm">
                       <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                         <tr>
@@ -361,7 +391,8 @@ export default function HostManagementPage() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                    </div>
+                  </>
                 )}
               </>
             )}
