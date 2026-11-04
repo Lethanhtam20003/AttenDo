@@ -16,8 +16,8 @@ export type ManagedEvent = Pick<
 
 interface CreateEventInput {
   title: string;
-  location_lat: number;
-  location_lng: number;
+  location_lat: number | null;
+  location_lng: number | null;
   radius_meters: number;
   custom_fields: CustomFieldConfig[];
   module_settings: {

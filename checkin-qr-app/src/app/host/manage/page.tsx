@@ -122,7 +122,7 @@ export default function HostManagementPage() {
             </p>
           </div>
           <Link
-            href="/host/setup"
+            href="/host/gps/setup"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
@@ -206,7 +206,7 @@ export default function HostManagementPage() {
                     {events.length ? 'Không tìm thấy cuộc họp phù hợp' : 'Chưa có cuộc họp nào'}
                   </p>
                   {!events.length && (
-                    <Link href="/host/setup" className="mt-2 inline-block text-sm font-semibold text-blue-600 hover:underline">
+                    <Link href="/host/gps/setup" className="mt-2 inline-block text-sm font-semibold text-blue-600 hover:underline">
                       Tạo cuộc họp đầu tiên
                     </Link>
                   )}

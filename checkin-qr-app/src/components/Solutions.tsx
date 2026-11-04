@@ -6,19 +6,19 @@ export const Solutions = () => {
       icon: <QrCode className="w-6 h-6 text-blue-600" />,
       title: "1. Dynamic QR Code",
       desc: "Mã QR tự động đổi sau mỗi vài giây, ngăn chặn triệt để chụp ảnh màn hình gửi điểm danh hộ.",
-      link: "/test-qr",
+      link: "/host/dynamic-qr/setup",
     },
     {
       icon: <MapPin className="w-6 h-6 text-blue-600" />,
       title: "2. Khoanh Vùng Vị Trí GPS",
       desc: "Giới hạn phạm vi điểm danh theo tọa độ địa lý, tự động phát hiện ứng dụng can thiệp GPS ảo.",
-      link: "/test-location",
+      link: "/host/gps/setup",
     },
     {
       icon: <ScanFace className="w-6 h-6 text-blue-600" />,
-      title: "3. Tạo mã Qr + xác minh địa chỉ",
-      desc: "Xác minh địa chỉ.",
-      link: "/host/setup",
+      title: "3. Tạo mã Qr +mã pin",
+      desc: "hiển thị mã Qr và mã pin để điểm danh, giúp tăng cường bảo mật và xác thực người dùng.",
+      link: "/host/qr-pin/setup",
     },
   ];
 
