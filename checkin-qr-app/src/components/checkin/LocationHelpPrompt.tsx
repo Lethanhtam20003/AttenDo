@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { Check, Copy, ExternalLink, HelpCircle, X } from 'lucide-react';
 import type { CheckinBrowser, DevicePlatform } from '@/lib/checkin/browser';
+import { useToolsStore } from '@/stores/tools-store';
 
 function subscribeToLocation(onChange: () => void) {
   window.addEventListener('popstate', onChange);
@@ -47,10 +48,19 @@ export default function LocationHelpPrompt({
   browser,
   permissionDenied,
 }: LocationHelpPromptProps) {
-  const [open, setOpen] = useState(permissionDenied);
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
+  const open = useToolsStore((state) => state.locationHelpOpen);
+  const copied = useToolsStore((state) => state.locationHelpCopied);
+  const copyError = useToolsStore((state) => state.locationHelpCopyError);
+  const setOpen = useToolsStore((state) => state.setLocationHelpOpen);
+  const setCopied = useToolsStore((state) => state.setLocationHelpCopied);
+  const setCopyError = useToolsStore((state) => state.setLocationHelpCopyError);
   const pageUrl = useSyncExternalStore(subscribeToLocation, getPageUrl, () => '');
+
+  useEffect(() => {
+    setOpen(permissionDenied);
+    setCopied(false);
+    setCopyError(false);
+  }, [permissionDenied, setCopyError, setCopied, setOpen]);
 
   const copyLink = async () => {
     setCopyError(false);

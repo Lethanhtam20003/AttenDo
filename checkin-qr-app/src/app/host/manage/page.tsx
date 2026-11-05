@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowUpRight,
@@ -16,14 +16,8 @@ import {
 import {
   getManagedEventAttendance,
   getManagedEvents,
-  type ManagedEvent,
 } from '@/actions/events';
-import type { AttendanceRecord, Event } from '@/types/database';
-
-type EventAttendance = {
-  event: Event;
-  attendees: AttendanceRecord[];
-};
+import { useHostManagementStore } from '@/stores/host-management-store';
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString('vi-VN', {
@@ -33,14 +27,27 @@ function formatDate(value: string) {
 }
 
 export default function HostManagementPage() {
-  const [events, setEvents] = useState<ManagedEvent[]>([]);
-  const [selected, setSelected] = useState<EventAttendance | null>(null);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
-  const [eventError, setEventError] = useState<string | null>(null);
-  const [attendanceError, setAttendanceError] = useState<string | null>(null);
-  const [eventSearch, setEventSearch] = useState('');
-  const [attendeeSearch, setAttendeeSearch] = useState('');
+  const events = useHostManagementStore((state) => state.events);
+  const selected = useHostManagementStore((state) => state.selected);
+  const isLoadingEvents = useHostManagementStore((state) => state.isLoadingEvents);
+  const isLoadingAttendance = useHostManagementStore((state) => state.isLoadingAttendance);
+  const eventError = useHostManagementStore((state) => state.eventError);
+  const attendanceError = useHostManagementStore((state) => state.attendanceError);
+  const eventSearch = useHostManagementStore((state) => state.eventSearch);
+  const attendeeSearch = useHostManagementStore((state) => state.attendeeSearch);
+  const setEvents = useHostManagementStore((state) => state.setEvents);
+  const setSelected = useHostManagementStore((state) => state.setSelected);
+  const setIsLoadingEvents = useHostManagementStore((state) => state.setIsLoadingEvents);
+  const setIsLoadingAttendance = useHostManagementStore((state) => state.setIsLoadingAttendance);
+  const setEventError = useHostManagementStore((state) => state.setEventError);
+  const setAttendanceError = useHostManagementStore((state) => state.setAttendanceError);
+  const setEventSearch = useHostManagementStore((state) => state.setEventSearch);
+  const setAttendeeSearch = useHostManagementStore((state) => state.setAttendeeSearch);
+  const reset = useHostManagementStore((state) => state.reset);
+
+  useEffect(() => {
+    reset();
+  }, [reset]);
 
   const loadEvents = useCallback(async () => {
     try {
@@ -58,7 +65,7 @@ export default function HostManagementPage() {
     } finally {
       setIsLoadingEvents(false);
     }
-  }, []);
+  }, [setEventError, setEvents, setIsLoadingEvents]);
 
   useEffect(() => {
     void Promise.resolve().then(loadEvents);

@@ -38,6 +38,18 @@ export interface Event {
   custom_fields: CustomFieldConfig[];
 }
 
+export type CheckinEvent = Pick<
+  Event,
+  | 'id'
+  | 'title'
+  | 'status'
+  | 'location_lat'
+  | 'location_lng'
+  | 'radius_meters'
+  | 'module_settings'
+  | 'custom_fields'
+>;
+
 export type EventInsert = Omit<Event, 'id' | 'created_at'>;
 
 // ── event_pins ───────────────────────────────────────────────

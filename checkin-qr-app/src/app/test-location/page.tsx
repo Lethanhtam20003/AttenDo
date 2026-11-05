@@ -1,13 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { MapPin, Loader2, Navigation, AlertTriangle } from 'lucide-react';
+import { useToolsStore } from '@/stores/tools-store';
 
 export default function TestLocationPage() {
-  // Quản lý các trạng thái: Tọa độ, Đang tải, Lỗi
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const location = useToolsStore((state) => state.testLocation);
+  const isLoading = useToolsStore((state) => state.isTestLocationLoading);
+  const error = useToolsStore((state) => state.testLocationError);
+  const setLocation = useToolsStore((state) => state.setTestLocation);
+  const setIsLoading = useToolsStore((state) => state.setIsTestLocationLoading);
+  const setError = useToolsStore((state) => state.setTestLocationError);
+  const reset = useToolsStore((state) => state.resetTestLocation);
+
+  useEffect(() => {
+    reset();
+  }, [reset]);
 
   // Hàm gọi Web Geolocation API
   const handleGetLocation = () => {

@@ -1,14 +1,23 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef } from "react";
 import { Download, QrCode } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
+import { useToolsStore } from "@/stores/tools-store";
 
 export default function TestQrPage() {
-  const [value, setValue] = useState("");
-  const [generatedValue, setGeneratedValue] = useState("");
-  const [error, setError] = useState("");
+  const value = useToolsStore((state) => state.testQrValue);
+  const generatedValue = useToolsStore((state) => state.generatedQrValue);
+  const error = useToolsStore((state) => state.testQrError);
+  const setValue = useToolsStore((state) => state.setTestQrValue);
+  const setGeneratedValue = useToolsStore((state) => state.setGeneratedQrValue);
+  const setError = useToolsStore((state) => state.setTestQrError);
+  const reset = useToolsStore((state) => state.resetTestQr);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    reset();
+  }, [reset]);
 
   const handleGenerate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

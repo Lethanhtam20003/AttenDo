@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, type FormEvent } from 'react';
 import { checkIn } from '@/actions/checkin';
-import type { Event } from '@/types/database';
+import type { CheckinEvent } from '@/types/database';
+import { useCheckinStore } from '@/stores/checkin-store';
 
 interface Coordinates {
   lat: number;
@@ -11,12 +12,14 @@ interface Coordinates {
 
 interface UseCheckinFormOptions {
   eventId?: string;
-  event: Event | null;
+  event: CheckinEvent | null;
   gpsReady: boolean;
   coords: Coordinates | null;
   currentDistance: number | null;
   isWithinRadius: boolean;
 }
+
+const EMPTY_FIELD_VALUES: Record<string, string> = {};
 
 // Dùng cùng một mã thiết bị để máy chủ nhận diện các lần gửi từ thiết bị này.
 function getDeviceId(): string {
@@ -39,13 +42,35 @@ export function useCheckinForm({
   currentDistance,
   isWithinRadius,
 }: UseCheckinFormOptions) {
-  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
-  const [pinInput, setPinInput] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [checkedInName, setCheckedInName] = useState('');
-  const [distanceResult, setDistanceResult] = useState<number | null>(null);
+  const activeEventId = useCheckinStore((state) => state.eventId);
+  const storedFieldValues = useCheckinStore((state) => state.fieldValues);
+  const storedPinInput = useCheckinStore((state) => state.pinInput);
+  const storedIsSubmitting = useCheckinStore((state) => state.isSubmitting);
+  const storedSubmitError = useCheckinStore((state) => state.submitError);
+  const storedIsSuccess = useCheckinStore((state) => state.isSuccess);
+  const storedCheckedInName = useCheckinStore((state) => state.checkedInName);
+  const storedDistanceResult = useCheckinStore((state) => state.distanceResult);
+  const setStoredFieldValues = useCheckinStore((state) => state.setFieldValues);
+  const setStoredPinInput = useCheckinStore((state) => state.setPinInput);
+  const setStoredSubmitting = useCheckinStore((state) => state.setSubmitting);
+  const setStoredSubmitError = useCheckinStore((state) => state.setSubmitError);
+  const setStoredSuccess = useCheckinStore((state) => state.setSuccess);
+  const isCurrentEvent = activeEventId === eventId;
+  const fieldValues = isCurrentEvent ? storedFieldValues : EMPTY_FIELD_VALUES;
+  const pinInput = isCurrentEvent ? storedPinInput : '';
+  const isSubmitting = isCurrentEvent && storedIsSubmitting;
+  const submitError = isCurrentEvent ? storedSubmitError : null;
+  const isSuccess = isCurrentEvent && storedIsSuccess;
+  const checkedInName = isCurrentEvent ? storedCheckedInName : '';
+  const distanceResult = isCurrentEvent ? storedDistanceResult : null;
+  const setFieldValues = useCallback((
+    update: Record<string, string> | ((current: Record<string, string>) => Record<string, string>)
+  ) => {
+    if (eventId) setStoredFieldValues(eventId, update);
+  }, [eventId, setStoredFieldValues]);
+  const setPinInput = useCallback((value: string) => {
+    if (eventId) setStoredPinInput(eventId, value);
+  }, [eventId, setStoredPinInput]);
 
   useEffect(() => {
     if (!eventId || typeof window === 'undefined') return;
@@ -53,35 +78,34 @@ export function useCheckinForm({
     if (localStorage.getItem(`checkedin_${eventId}`)) {
       const savedName = localStorage.getItem(`checkedin_name_${eventId}`) ?? '';
       Promise.resolve().then(() => {
-        setCheckedInName(savedName);
-        setIsSuccess(true);
+        setStoredSuccess(eventId, savedName, null);
       });
     }
-  }, [eventId]);
+  }, [eventId, setStoredSuccess]);
 
   const handleSubmit = useCallback(async (formEvent: FormEvent<HTMLFormElement>) => {
     formEvent.preventDefault();
     if (!eventId) {
-      setSubmitError('Không tìm thấy mã phiên điểm danh. Vui lòng tải lại trang.');
+      if (eventId) setStoredSubmitError(eventId, 'Không tìm thấy mã phiên điểm danh. Vui lòng tải lại trang.');
       return;
     }
 
     const requireLocation = event?.module_settings?.require_location !== false;
     if (requireLocation && (!gpsReady || !coords)) {
-      setSubmitError('Chưa xác định được vị trí GPS của bạn. Vui lòng bật định vị.');
+      setStoredSubmitError(eventId, 'Chưa xác định được vị trí GPS của bạn. Vui lòng bật định vị.');
       return;
     }
 
     if (requireLocation && !isWithinRadius && event) {
-      setSubmitError(
+      setStoredSubmitError(eventId,
         `Bạn đang ở cách địa điểm ~${currentDistance}m (Vượt quá bán kính cho phép ${event.radius_meters}m). Vui lòng di chuyển đến gần hội trường.`
       );
       return;
     }
 
     // Gửi dữ liệu sau khi đã xác nhận GPS và vị trí nằm trong bán kính cho phép.
-    setIsSubmitting(true);
-    setSubmitError(null);
+    setStoredSubmitting(eventId, true);
+    setStoredSubmitError(eventId, null);
 
     try {
       const attendeeName = (
@@ -103,24 +127,34 @@ export function useCheckinForm({
       });
 
       if (!result.success) {
-        setSubmitError(result.error);
+        setStoredSubmitError(eventId, result.error);
         return;
       }
 
       // Lưu dấu trên thiết bị để tránh điểm danh lặp lại cùng một phiên.
       localStorage.setItem(`checkedin_${eventId}`, 'true');
       localStorage.setItem(`checkedin_name_${eventId}`, attendeeName);
-      setCheckedInName(attendeeName);
-      setDistanceResult(result.data.distance_meters);
-      setIsSuccess(true);
+      setStoredSuccess(eventId, attendeeName, result.data.distance_meters);
     } catch (error) {
-      setSubmitError(
+      setStoredSubmitError(eventId,
         error instanceof Error ? error.message : 'Có lỗi khi gửi điểm danh. Vui lòng thử lại.'
       );
     } finally {
-      setIsSubmitting(false);
+      setStoredSubmitting(eventId, false);
     }
-  }, [coords, currentDistance, event, eventId, fieldValues, gpsReady, isWithinRadius, pinInput]);
+  }, [
+    coords,
+    currentDistance,
+    event,
+    eventId,
+    fieldValues,
+    gpsReady,
+    isWithinRadius,
+    pinInput,
+    setStoredSubmitError,
+    setStoredSubmitting,
+    setStoredSuccess,
+  ]);
 
   return {
     fieldValues,

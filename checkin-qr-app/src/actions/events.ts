@@ -10,6 +10,7 @@ import {
 import type {
   ActionResult,
   AttendanceRecord,
+  CheckinEvent,
   CustomFieldConfig,
   Event,
 } from '@/types/database';
@@ -161,6 +162,19 @@ export async function getEvent(eventId: string) {
     .single();
 
   if (error) return null;
+  return data;
+}
+
+export async function getCheckinEvent(eventId: string): Promise<CheckinEvent | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, title, status, location_lat, location_lng, radius_meters, module_settings, custom_fields')
+    .eq('id', eventId)
+    .maybeSingle();
+
+  if (error) throw new Error('Không thể tải thông tin phiên điểm danh.');
   return data;
 }
 

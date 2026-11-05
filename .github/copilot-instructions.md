@@ -6,18 +6,18 @@
 
 ## 2. Stack and Commands
 - App lives in `checkin-qr-app/` and uses Bun, Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS 4, and Supabase (`@supabase/ssr`, `@supabase/supabase-js`).
+- Read `checkin-qr-app/docs/PROJECT_CONTEXT.md` for a concise product, architecture, route, state-store, and database overview. Treat it as orientation; verify the relevant source and migrations before making changes.
 - Run commands from `checkin-qr-app/`: `bun install`, `bun run dev`, `bun run lint`, and `bun run build`.
 - TypeScript alias: `@/*` maps to `src/*`. There is no test script in `package.json`.
 - DO NOT manually import third-party libraries (e.g., axios, moment, lodash, redux) unless explicitly requested by the user. Always use `lucide-react` for icons.
 
 ## 3. Architecture & State Management
-- Routes and layouts live in `src/app/`; shared UI in `src/components/`; hooks in `src/hooks/`; Supabase clients in `src/lib/supabase/`; server actions in `src/actions/`; shared types in `src/types/`; Zustand stores in `src/store/`.
+- Routes and layouts live in `src/app/`; shared UI in `src/components/`; hooks in `src/hooks/`; Supabase clients in `src/lib/supabase/`; server actions in `src/actions/`; shared types in `src/types/`; Zustand stores in `src/stores/`.
 - **Server-First:** Prefer Server Components. Use Client Components only where browser APIs, event handlers, or client-side state are needed. Keep the client boundary as small/deep as practical.
 - **State Hierarchy:**
   1. **URL State:** Use URL parameters (`?step=qr`) for shareable or navigable state.
   2. **Server State:** Rely on Next.js cache and Supabase instead of duplicating data in client state.
-  3. **Local State:** Use `useState` for temporary UI toggles/inputs.
-  4. **Global State (Zustand):** STRICTLY PROHIBITED to use Redux or React Context. Only use Zustand. Split into small, modular store files (e.g., `useCheckinStore.ts`). When using a store in a component, select specific state slices to prevent unnecessary re-renders (e.g., `const code = useStore(state => state.code)`).
+  3. **Client State (Zustand):** Manage client-side domain, form, and UI state with focused stores under `src/stores/`; do not add `useState`, Redux, or React Context. Select only the required store fields to limit re-renders. Keep framework-managed state such as `useTransition`, `useActionState`, refs, and derived values in React.
 
 ## 4. Supabase & Data Flow
 - ALWAYS inject TypeScript definitions (generated types) into the Supabase client (e.g., `createClient<Database>()`). Never execute untyped queries.

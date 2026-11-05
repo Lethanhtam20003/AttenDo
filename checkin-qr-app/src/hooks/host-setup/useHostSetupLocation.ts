@@ -1,25 +1,26 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
 import { useGeolocation } from '@/hooks/host-setup/useGeolocation';
-
-const DEFAULT_COORDINATES = { lat: 10.64102, lng: 107.34564 };
+import { useHostSetupStore } from '@/stores/host-setup-store';
 
 export function useHostSetupLocation() {
-  const [coordinates, setCoordinates] = useState(DEFAULT_COORDINATES);
-  const [radius, setRadius] = useState(100);
+  const coordinates = useHostSetupStore((state) => state.coordinates);
+  const radius = useHostSetupStore((state) => state.radius);
+  const setCoordinates = useHostSetupStore((state) => state.setCoordinates);
+  const setRadius = useHostSetupStore((state) => state.setRadius);
   const geolocation = useGeolocation();
   const { getLocation } = geolocation;
 
   const handleGetCurrentLocation = useCallback(async () => {
     const currentCoordinates = await getLocation();
     if (currentCoordinates) setCoordinates(currentCoordinates);
-  }, [getLocation]);
+  }, [getLocation, setCoordinates]);
 
   const handleMapLocationChange = useCallback((lat: number, lng: number) => {
     setCoordinates({ lat, lng });
-  }, []);
+  }, [setCoordinates]);
 
   return {
     coordinates,

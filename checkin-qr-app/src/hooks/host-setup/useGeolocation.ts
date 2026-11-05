@@ -1,33 +1,27 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useHostSetupStore } from '@/stores/host-setup-store';
 
 interface Coordinates {
   lat: number;
   lng: number;
 }
 
-interface GeolocationState {
-  coordinates: Coordinates | null;
-  error: string | null;
-  isLoading: boolean;
-}
-
 export const useGeolocation = () => {
-  const [state, setState] = useState<GeolocationState>({
-    coordinates: null,
-    error: null,
-    isLoading: false,
-  });
+  const coordinates = useHostSetupStore((state) => state.coordinates);
+  const error = useHostSetupStore((state) => state.locationError);
+  const isLoading = useHostSetupStore((state) => state.isLocating);
+  const setCoordinates = useHostSetupStore((state) => state.setCoordinates);
+  const setGeolocation = useHostSetupStore((state) => state.setGeolocation);
 
   const getLocation = useCallback((): Promise<Coordinates | null> => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setGeolocation({ isLocating: true, locationError: null });
 
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setState({
-        coordinates: null,
-        error: 'Trình duyệt của bạn không hỗ trợ định vị GPS.',
-        isLoading: false,
+      setGeolocation({
+        locationError: 'Trình duyệt của bạn không hỗ trợ định vị GPS.',
+        isLocating: false,
       });
       return Promise.resolve(null);
     }
@@ -39,7 +33,8 @@ export const useGeolocation = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
-          setState({ coordinates, error: null, isLoading: false });
+          setCoordinates(coordinates);
+          setGeolocation({ locationError: null, isLocating: false });
           resolve(coordinates);
         },
         (error) => {
@@ -55,7 +50,7 @@ export const useGeolocation = () => {
               errorMessage = 'Quá thời gian yêu cầu lấy vị trí. Vui lòng thử lại.';
               break;
           }
-          setState({ coordinates: null, error: errorMessage, isLoading: false });
+          setGeolocation({ locationError: errorMessage, isLocating: false });
           resolve(null);
         },
         {
@@ -65,7 +60,7 @@ export const useGeolocation = () => {
         }
       );
     });
-  }, []);
+  }, [setCoordinates, setGeolocation]);
 
-  return { ...state, getLocation };
+  return { coordinates, error, isLoading, getLocation };
 };
