@@ -168,8 +168,8 @@ CREATE TRIGGER ensure_active_event_pin
   BEFORE INSERT ON event_pins
   FOR EACH ROW EXECUTE FUNCTION public.ensure_event_is_active();
 
-DROP TRIGGER IF EXISTS ensure_active_event_checkin ON attendance_records;
-CREATE TRIGGER ensure_active_event_checkin
+DROP TRIGGER IF EXISTS ensure_active_event_checkIn ON attendance_records;
+CREATE TRIGGER ensure_active_event_checkIn
   BEFORE INSERT ON attendance_records
   FOR EACH ROW EXECUTE FUNCTION public.ensure_event_is_active();
 

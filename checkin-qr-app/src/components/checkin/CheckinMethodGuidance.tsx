@@ -2,22 +2,22 @@
 
 import { MapPin, Navigation, QrCode } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import type { useCheckinLocation } from '@/hooks/checkin/useCheckinLocation';
-import type { CheckinRequirements } from '@/lib/checkin/solution';
-import type { CheckinEvent } from '@/types/database';
-import LocationHelpPrompt from '@/components/checkin/LocationHelpPrompt';
-import { detectCheckinEnvironment } from '@/lib/checkin/browser';
+import type { useCheckInLocation } from '@/hooks/checkIn/useCheckInLocation';
+import type { CheckInRequirements } from '@/lib/checkIn/solution';
+import type { CheckInEvent } from '@/types/database';
+import LocationHelpPrompt from '@/components/checkIn/LocationHelpPrompt';
+import { detectCheckInEnvironment } from '@/lib/checkIn/browser';
 
-type LocationState = ReturnType<typeof useCheckinLocation>;
+type LocationState = ReturnType<typeof useCheckInLocation>;
 
-export function CheckinMethodGuidance({
+export function CheckInMethodGuidance({
   event,
   requirements,
   location,
   userAgent,
 }: {
-  event: CheckinEvent;
-  requirements: CheckinRequirements;
+  event: CheckInEvent;
+  requirements: CheckInRequirements;
   location: LocationState | null;
   userAgent: string;
 }) {
@@ -31,7 +31,7 @@ export function CheckinMethodGuidance({
           <GpsGuidance event={event} location={location} />
           <LocationHelpPrompt
             key={location.isPermissionDenied ? 'permission-denied' : 'permission-prompt'}
-            {...detectCheckinEnvironment(
+            {...detectCheckInEnvironment(
               userAgent,
               typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints
             )}
@@ -74,7 +74,7 @@ export function CheckinMethodGuidance({
   );
 }
 
-function GpsGuidance({ event, location }: { event: CheckinEvent; location: LocationState }) {
+function GpsGuidance({ event, location }: { event: CheckInEvent; location: LocationState }) {
   if (location.gpsReady && location.coords) {
     return (
       <div
@@ -110,21 +110,26 @@ function GpsGuidance({ event, location }: { event: CheckinEvent; location: Locat
     <div className="flex items-start justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-800 sm:items-center">
       <div className="flex items-center gap-2">
         <Navigation className="h-4 w-4 shrink-0 animate-spin text-amber-600" />
-        <span>
-          {location.isRefiningLocation
-            ? 'Đang xác định vị trí chính xác...'
-            : location.gpsError || 'Đang tìm vị trí gần đây...'}
+        <span role="status" aria-live="polite">
+          {location.isRequestingLocation
+            ? location.isRefiningLocation
+              ? 'Đang xác minh vị trí chính xác...'
+              : 'Đang chờ quyền và xác minh vị trí...'
+            : location.gpsError || 'Cần cho phép truy cập vị trí để tiếp tục.'}
         </span>
       </div>
-      {location.gpsError && (
-        <button
-          type="button"
-          onClick={location.requestLocation}
-          className="min-h-10 shrink-0 rounded-lg px-2 text-[11px] font-semibold underline"
-        >
-          Thử lại
-        </button>
-      )}
+      <button
+        type="button"
+        disabled={location.isRequestingLocation}
+        onClick={location.requestLocation}
+        className="min-h-10 shrink-0 rounded-lg px-2 text-[11px] font-semibold underline disabled:cursor-wait disabled:opacity-50"
+      >
+        {location.isRequestingLocation
+          ? 'Đang xác minh...'
+          : location.gpsError
+            ? 'Thử lại'
+            : 'Cho phép vị trí'}
+      </button>
     </div>
   );
 }

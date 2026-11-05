@@ -1,18 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, type FormEvent } from 'react';
-import { checkIn } from '@/actions/checkin';
-import type { CheckinEvent } from '@/types/database';
-import { useCheckinStore } from '@/stores/checkin-store';
+import { checkIn } from '@/actions/checkIn';
+import type { CheckInEvent } from '@/types/database';
+import { useCheckInStore } from '@/stores/checkIn-store';
 
 interface Coordinates {
   lat: number;
   lng: number;
 }
 
-interface UseCheckinFormOptions {
+interface UseCheckInFormOptions {
   eventId?: string;
-  event: CheckinEvent | null;
+  event: CheckInEvent | null;
   gpsReady: boolean;
   coords: Coordinates | null;
   currentDistance: number | null;
@@ -34,27 +34,27 @@ function getDeviceId(): string {
 }
 
 // Quản lý dữ liệu biểu mẫu, gửi điểm danh và trạng thái xác nhận thành công.
-export function useCheckinForm({
+export function useCheckInForm({
   eventId,
   event,
   gpsReady,
   coords,
   currentDistance,
   isWithinRadius,
-}: UseCheckinFormOptions) {
-  const activeEventId = useCheckinStore((state) => state.eventId);
-  const storedFieldValues = useCheckinStore((state) => state.fieldValues);
-  const storedPinInput = useCheckinStore((state) => state.pinInput);
-  const storedIsSubmitting = useCheckinStore((state) => state.isSubmitting);
-  const storedSubmitError = useCheckinStore((state) => state.submitError);
-  const storedIsSuccess = useCheckinStore((state) => state.isSuccess);
-  const storedCheckedInName = useCheckinStore((state) => state.checkedInName);
-  const storedDistanceResult = useCheckinStore((state) => state.distanceResult);
-  const setStoredFieldValues = useCheckinStore((state) => state.setFieldValues);
-  const setStoredPinInput = useCheckinStore((state) => state.setPinInput);
-  const setStoredSubmitting = useCheckinStore((state) => state.setSubmitting);
-  const setStoredSubmitError = useCheckinStore((state) => state.setSubmitError);
-  const setStoredSuccess = useCheckinStore((state) => state.setSuccess);
+}: UseCheckInFormOptions) {
+  const activeEventId = useCheckInStore((state) => state.eventId);
+  const storedFieldValues = useCheckInStore((state) => state.fieldValues);
+  const storedPinInput = useCheckInStore((state) => state.pinInput);
+  const storedIsSubmitting = useCheckInStore((state) => state.isSubmitting);
+  const storedSubmitError = useCheckInStore((state) => state.submitError);
+  const storedIsSuccess = useCheckInStore((state) => state.isSuccess);
+  const storedCheckedInName = useCheckInStore((state) => state.checkedInName);
+  const storedDistanceResult = useCheckInStore((state) => state.distanceResult);
+  const setStoredFieldValues = useCheckInStore((state) => state.setFieldValues);
+  const setStoredPinInput = useCheckInStore((state) => state.setPinInput);
+  const setStoredSubmitting = useCheckInStore((state) => state.setSubmitting);
+  const setStoredSubmitError = useCheckInStore((state) => state.setSubmitError);
+  const setStoredSuccess = useCheckInStore((state) => state.setSuccess);
   const isCurrentEvent = activeEventId === eventId;
   const fieldValues = isCurrentEvent ? storedFieldValues : EMPTY_FIELD_VALUES;
   const pinInput = isCurrentEvent ? storedPinInput : '';

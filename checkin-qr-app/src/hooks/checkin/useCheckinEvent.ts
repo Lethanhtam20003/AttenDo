@@ -1,24 +1,57 @@
 'use client';
 
 import { useEffect } from 'react';
-import type { CheckinEvent } from '@/types/database';
-import { useCheckinStore } from '@/stores/checkin-store';
+import { getLocationConsentStorageKey } from '@/constants/checkIn';
+import type { CheckInEvent } from '@/types/database';
+import { useCheckInStore } from '@/stores/checkIn-store';
 
 // Khởi tạo store từ dữ liệu đã được tải một lần trong Server Component.
-export function useCheckinEvent(initialEvent: CheckinEvent) {
+export function useCheckInEvent(initialEvent: CheckInEvent) {
   const eventId = initialEvent.id;
-  const activeEventId = useCheckinStore((state) => state.eventId);
-  const event = useCheckinStore((state) => state.event);
-  const loading = useCheckinStore((state) => state.loading);
-  const beginEvent = useCheckinStore((state) => state.beginEvent);
-  const setEvent = useCheckinStore((state) => state.setEvent);
-  const setLoading = useCheckinStore((state) => state.setLoading);
+  const activeEventId = useCheckInStore((state) => state.eventId);
+  const event = useCheckInStore((state) => state.event);
+  const loading = useCheckInStore((state) => state.loading);
+  const beginEvent = useCheckInStore((state) => state.beginEvent);
+  const setEvent = useCheckInStore((state) => state.setEvent);
+  const setLoading = useCheckInStore((state) => state.setLoading);
+  const setLocationIntroConfirmed = useCheckInStore((state) => state.setLocationIntroConfirmed);
 
   useEffect(() => {
     beginEvent(eventId);
     setEvent(eventId, initialEvent);
-    setLoading(eventId, false);
-  }, [beginEvent, eventId, initialEvent, setEvent, setLoading]);
+
+    const restoreLocationConsent = async () => {
+      let hasLocationConsent = false;
+
+      try {
+        hasLocationConsent = localStorage.getItem(getLocationConsentStorageKey(eventId)) === 'true';
+      } catch {
+        // Không truy cập được bộ nhớ vẫn không ngăn người dùng tiếp tục điểm danh.
+      }
+
+      if (!hasLocationConsent && typeof navigator !== 'undefined' && navigator.permissions) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'geolocation' });
+          hasLocationConsent = permission.state === 'granted';
+        } catch {
+          // Một số trình duyệt không hỗ trợ truy vấn trạng thái quyền.
+        }
+      }
+
+      if (hasLocationConsent) {
+        try {
+          localStorage.setItem(getLocationConsentStorageKey(eventId), 'true');
+        } catch {
+          // Vẫn có thể tiếp tục nếu trình duyệt chặn bộ nhớ cục bộ.
+        }
+        setLocationIntroConfirmed(eventId, true);
+      }
+
+      setLoading(eventId, false);
+    };
+
+    void restoreLocationConsent();
+  }, [beginEvent, eventId, initialEvent, setEvent, setLoading, setLocationIntroConfirmed]);
 
   return {
     event: activeEventId === eventId ? event : null,

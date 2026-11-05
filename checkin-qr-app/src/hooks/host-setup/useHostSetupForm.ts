@@ -8,7 +8,7 @@ import {
   PIN_MIN_REFRESH_SECONDS,
   QR_TOKEN_MAX_REFRESH_SECONDS,
   QR_TOKEN_MIN_REFRESH_SECONDS,
-} from '@/constants/checkin';
+} from '@/constants/checkIn';
 import type { CustomFieldConfig } from '@/types/database';
 import type { HostSetupCustomField } from './useCustomFields';
 import { useHostSetupStore } from '@/stores/host-setup-store';
@@ -22,7 +22,7 @@ export function useHostSetupForm(
   coordinates: Coordinates,
   radius: number,
   fields: HostSetupCustomField[],
-  checkinSettings: {
+  checkInSettings: {
     requireLocation: boolean;
     requirePin: boolean;
     dynamicQr: boolean;
@@ -49,27 +49,27 @@ export function useHostSetupForm(
       return;
     }
     if (
-      !Number.isInteger(checkinSettings.sessionDurationMinutes) ||
-      checkinSettings.sessionDurationMinutes < 1 ||
-      checkinSettings.sessionDurationMinutes > 10080
+      !Number.isInteger(checkInSettings.sessionDurationMinutes) ||
+      checkInSettings.sessionDurationMinutes < 1 ||
+      checkInSettings.sessionDurationMinutes > 10080
     ) {
       setErrorMsg('Thời gian tồn tại phiên phải từ 1 phút đến 168 giờ.');
       return;
     }
     if (
-      checkinSettings.dynamicQr &&
-      (!Number.isInteger(checkinSettings.dynamicQrIntervalSeconds) ||
-        checkinSettings.dynamicQrIntervalSeconds < QR_TOKEN_MIN_REFRESH_SECONDS ||
-        checkinSettings.dynamicQrIntervalSeconds > QR_TOKEN_MAX_REFRESH_SECONDS)
+      checkInSettings.dynamicQr &&
+      (!Number.isInteger(checkInSettings.dynamicQrIntervalSeconds) ||
+        checkInSettings.dynamicQrIntervalSeconds < QR_TOKEN_MIN_REFRESH_SECONDS ||
+        checkInSettings.dynamicQrIntervalSeconds > QR_TOKEN_MAX_REFRESH_SECONDS)
     ) {
       setErrorMsg('Thời gian đổi mã QR phải từ 1 đến 86400 giây.');
       return;
     }
     if (
-      checkinSettings.requirePin &&
-      (!Number.isInteger(checkinSettings.pinIntervalSeconds) ||
-        checkinSettings.pinIntervalSeconds < PIN_MIN_REFRESH_SECONDS ||
-        checkinSettings.pinIntervalSeconds > PIN_MAX_REFRESH_SECONDS)
+      checkInSettings.requirePin &&
+      (!Number.isInteger(checkInSettings.pinIntervalSeconds) ||
+        checkInSettings.pinIntervalSeconds < PIN_MIN_REFRESH_SECONDS ||
+        checkInSettings.pinIntervalSeconds > PIN_MAX_REFRESH_SECONDS)
     ) {
       setErrorMsg('Thời gian đổi mã PIN phải từ 1 đến 86400 giây.');
       return;
@@ -86,17 +86,17 @@ export function useHostSetupForm(
 
       const result = await createEvent({
         title: eventTitle.trim(),
-        duration_minutes: checkinSettings.sessionDurationMinutes,
-        location_lat: checkinSettings.requireLocation ? coordinates.lat : null,
-        location_lng: checkinSettings.requireLocation ? coordinates.lng : null,
+        duration_minutes: checkInSettings.sessionDurationMinutes,
+        location_lat: checkInSettings.requireLocation ? coordinates.lat : null,
+        location_lng: checkInSettings.requireLocation ? coordinates.lng : null,
         radius_meters: radius,
         custom_fields: customFields,
         module_settings: {
-          require_location: checkinSettings.requireLocation,
-          require_pin: checkinSettings.requirePin,
-          dynamic_qr: checkinSettings.dynamicQr,
-          dynamic_qr_interval_seconds: checkinSettings.dynamicQrIntervalSeconds,
-          pin_interval_seconds: checkinSettings.pinIntervalSeconds,
+          require_location: checkInSettings.requireLocation,
+          require_pin: checkInSettings.requirePin,
+          dynamic_qr: checkInSettings.dynamicQr,
+          dynamic_qr_interval_seconds: checkInSettings.dynamicQrIntervalSeconds,
+          pin_interval_seconds: checkInSettings.pinIntervalSeconds,
         },
       });
 
@@ -107,7 +107,7 @@ export function useHostSetupForm(
 
       router.push(`/host/live/${result.data.eventId}`);
     });
-  }, [checkinSettings, coordinates.lat, coordinates.lng, eventTitle, fields, radius, router, setErrorMsg]);
+  }, [checkInSettings, coordinates.lat, coordinates.lng, eventTitle, fields, radius, router, setErrorMsg]);
 
   return { eventTitle, setEventTitle, errorMsg, isPending, handleLaunch };
 }

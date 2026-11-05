@@ -1,6 +1,6 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "/^Set-Location 'D:\\\\lethanhtam-dev\\\\AttenDo\\\\checkin-qr-app'; node --version; node \\.\\\\node_modules\\\\next\\\\dist\\\\bin\\\\next build$/": {
+        "/^Set-Location 'D:\\\\lethanhtam-dev\\\\AttenDo\\\\checkIn-qr-app'; node --version; node \\.\\\\node_modules\\\\next\\\\dist\\\\bin\\\\next build$/": {
             "approve": true,
             "matchCommandLine": true
         }

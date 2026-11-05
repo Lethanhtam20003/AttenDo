@@ -1,37 +1,37 @@
 import { Suspense } from 'react';
 import { connection } from 'next/server';
-import { getCheckinEvent } from '@/actions/events';
-import { CheckinExperience } from '@/components/checkin/CheckinExperience';
+import { getCheckInEvent } from '@/actions/events';
+import { CheckInExperience } from '@/components/checkIn/CheckInExperience';
 import {
-  CheckinLoadingState,
-  CheckinUnavailableState,
-} from '@/components/checkin/CheckinShared';
-import { getCheckinRequirements } from '@/lib/checkin/solution';
+  CheckInLoadingState,
+  CheckInUnavailableState,
+} from '@/components/checkIn/CheckInShared';
+import { getCheckInRequirements } from '@/lib/checkIn/solution';
 
-type AttendeeCheckinPageProps = {
+type AttendeeCheckInPageProps = {
   params: Promise<{ eventId: string }>;
 };
 
-export default function AttendeeCheckinPage(props: AttendeeCheckinPageProps) {
+export default function AttendeeCheckInPage(props: AttendeeCheckInPageProps) {
   return (
-    <Suspense fallback={<CheckinLoadingState message="Đang tải thông tin phiên điểm danh..." />}>
-      <AttendeeCheckinContent {...props} />
+    <Suspense fallback={<CheckInLoadingState message="Đang tải thông tin phiên điểm danh..." />}>
+      <AttendeeCheckInContent {...props} />
     </Suspense>
   );
 }
 
-async function AttendeeCheckinContent({ params }: AttendeeCheckinPageProps) {
+async function AttendeeCheckInContent({ params }: AttendeeCheckInPageProps) {
   await connection();
   const { eventId } = await params;
-  const event = await getCheckinEvent(eventId);
+  const event = await getCheckInEvent(eventId);
 
-  if (!event) return <CheckinUnavailableState />;
-  if (event.status === 'closed') return <CheckinUnavailableState closed />;
+  if (!event) return <CheckInUnavailableState />;
+  if (event.status === 'closed') return <CheckInUnavailableState closed />;
 
   return (
-    <CheckinExperience
+    <CheckInExperience
       event={event}
-      requirements={getCheckinRequirements(event)}
+      requirements={getCheckInRequirements(event)}
     />
   );
 }
