@@ -16,6 +16,7 @@ interface CheckInState {
   isRequestingLocation: boolean;
   isRefiningLocation: boolean;
   isPermissionDenied: boolean;
+  locationIntroConfirmed: boolean;
   fieldValues: Record<string, string>;
   pinInput: string;
   isSubmitting: boolean;
@@ -27,6 +28,7 @@ interface CheckInState {
   setEvent: (eventId: string, event: CheckInEvent | null) => void;
   setLoading: (eventId: string, loading: boolean) => void;
   setGpsState: (eventId: string, update: Partial<CheckInState>) => void;
+  setLocationIntroConfirmed: (eventId: string, value: boolean) => void;
   setFieldValues: (
     eventId: string,
     values: Record<string, string> | ((current: Record<string, string>) => Record<string, string>)
@@ -46,6 +48,7 @@ const emptyState = {
   isRequestingLocation: false,
   isRefiningLocation: false,
   isPermissionDenied: false,
+  locationIntroConfirmed: false,
   fieldValues: {} as Record<string, string>,
   pinInput: '',
   isSubmitting: false,
@@ -67,6 +70,9 @@ export const useCheckInStore = create<CheckInState>((set) => ({
   )),
   setGpsState: (eventId, update) => set((state) => (
     state.eventId === eventId ? update : {}
+  )),
+  setLocationIntroConfirmed: (eventId, locationIntroConfirmed) => set((state) => (
+    state.eventId === eventId ? { locationIntroConfirmed } : {}
   )),
   setFieldValues: (eventId, values) => set((state) => (
     state.eventId === eventId

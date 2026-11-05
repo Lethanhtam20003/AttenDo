@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useSyncExternalStore } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, MapPin } from 'lucide-react';
+import { getLocationConsentStorageKey } from '@/constants/checkIn';
 import { useCheckInForm } from '@/hooks/checkIn/useCheckInForm';
 import { useCheckInLocation } from '@/hooks/checkIn/useCheckInLocation';
 import { CheckInMethodGuidance } from '@/components/checkIn/CheckInMethodGuidance';
@@ -15,6 +16,7 @@ import {
 import { useCheckInEvent } from '@/hooks/checkIn/useCheckInEvent';
 import type { CheckInRequirements } from '@/lib/checkIn/solution';
 import type { CheckInEvent } from '@/types/database';
+import { useCheckInStore } from '@/stores/checkIn-store';
 
 function subscribeToBrowser() {
   return () => {};
@@ -50,29 +52,54 @@ function GpsCheckInExperience({
   const userAgent = useSyncExternalStore(subscribeToBrowser, getUserAgent, () => '');
   const location = useCheckInLocation(event, true);
   const requestLocation = location.requestLocation;
+  const locationIntroConfirmed = useCheckInStore((state) => state.locationIntroConfirmed);
+  const setLocationIntroConfirmed = useCheckInStore((state) => state.setLocationIntroConfirmed);
 
   useEffect(() => {
-    if (!userAgent) return;
+    if (!locationIntroConfirmed) return;
 
-    let active = true;
-    const requestIfAlreadyGranted = async () => {
-      if (!navigator.permissions) return;
-
-      try {
-        const permission = await navigator.permissions.query({ name: 'geolocation' });
-        if (!active) return;
-
-        if (permission.state === 'granted') requestLocation();
-      } catch (error) {
-        console.warn('Unable to check geolocation permission; waiting for the user to request it.', error);
+    try {
+      if (localStorage.getItem(getLocationConsentStorageKey(event.id)) === 'true') {
+        requestLocation();
       }
-    };
+    } catch {
+      // Không truy cập được bộ nhớ vẫn không ngăn người dùng tiếp tục điểm danh.
+    }
+  }, [event.id, requestLocation, locationIntroConfirmed]);
 
-    void requestIfAlreadyGranted();
-    return () => {
-      active = false;
-    };
-  }, [requestLocation, userAgent]);
+  if (!locationIntroConfirmed) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="location-consent-title"
+          aria-describedby="location-consent-description"
+          className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-lg"
+        >
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+            <MapPin aria-hidden="true" size={24} />
+          </div>
+          <h2 id="location-consent-title" className="text-center text-lg font-bold text-slate-900">
+            Cho phép truy cập vị trí
+          </h2>
+          <p id="location-consent-description" className="mt-2 text-center text-sm leading-6 text-slate-600">
+            Phiên điểm danh này cần xác minh bạn đang ở trong phạm vi địa điểm tổ chức. Sau khi xác nhận, trình duyệt sẽ hỏi quyền vị trí; bạn có thể nhập thông tin trong lúc hệ thống kiểm tra.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setLocationIntroConfirmed(event.id, true);
+              location.requestLocation();
+            }}
+            className="mt-5 min-h-12 w-full rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-700/30"
+          >
+            Xác nhận và tiếp tục
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <CheckInFormExperience

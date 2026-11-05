@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { getLocationConsentStorageKey } from '@/constants/checkIn';
 import type { CheckInEvent } from '@/types/database';
 import { useCheckInStore } from '@/stores/checkIn-store';
 
@@ -13,12 +14,44 @@ export function useCheckInEvent(initialEvent: CheckInEvent) {
   const beginEvent = useCheckInStore((state) => state.beginEvent);
   const setEvent = useCheckInStore((state) => state.setEvent);
   const setLoading = useCheckInStore((state) => state.setLoading);
+  const setLocationIntroConfirmed = useCheckInStore((state) => state.setLocationIntroConfirmed);
 
   useEffect(() => {
     beginEvent(eventId);
     setEvent(eventId, initialEvent);
-    setLoading(eventId, false);
-  }, [beginEvent, eventId, initialEvent, setEvent, setLoading]);
+
+    const restoreLocationConsent = async () => {
+      let hasLocationConsent = false;
+
+      try {
+        hasLocationConsent = localStorage.getItem(getLocationConsentStorageKey(eventId)) === 'true';
+      } catch {
+        // Không truy cập được bộ nhớ vẫn không ngăn người dùng tiếp tục điểm danh.
+      }
+
+      if (!hasLocationConsent && typeof navigator !== 'undefined' && navigator.permissions) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'geolocation' });
+          hasLocationConsent = permission.state === 'granted';
+        } catch {
+          // Một số trình duyệt không hỗ trợ truy vấn trạng thái quyền.
+        }
+      }
+
+      if (hasLocationConsent) {
+        try {
+          localStorage.setItem(getLocationConsentStorageKey(eventId), 'true');
+        } catch {
+          // Vẫn có thể tiếp tục nếu trình duyệt chặn bộ nhớ cục bộ.
+        }
+        setLocationIntroConfirmed(eventId, true);
+      }
+
+      setLoading(eventId, false);
+    };
+
+    void restoreLocationConsent();
+  }, [beginEvent, eventId, initialEvent, setEvent, setLoading, setLocationIntroConfirmed]);
 
   return {
     event: activeEventId === eventId ? event : null,

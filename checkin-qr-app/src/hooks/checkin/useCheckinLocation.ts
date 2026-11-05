@@ -1,8 +1,12 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
+import { getLocationConsentStorageKey } from '@/constants/checkIn';
 import type { CheckInEvent } from '@/types/database';
 import { useCheckInStore } from '@/stores/checkIn-store';
+
+const LOCATION_TIMEOUT_MS = 2500;
+const MAX_LOCATION_RETRIES = 3;
 
 // Tính khoảng cách giữa hai tọa độ GPS theo mét bằng công thức Haversine.
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -32,6 +36,9 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
 
   const requestLocation = useCallback(() => {
     if (!eventId) return;
+    const state = useCheckInStore.getState();
+    if (state.eventId === eventId && state.isRequestingLocation) return;
+
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       setGpsState(eventId, {
         isRequestingLocation: false,
@@ -50,6 +57,12 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
     });
 
     const acceptPosition = (position: GeolocationPosition) => {
+      try {
+        localStorage.setItem(getLocationConsentStorageKey(eventId), 'true');
+      } catch {
+        // Vẫn xác minh được vị trí nếu trình duyệt chặn bộ nhớ cục bộ.
+      }
+
       setGpsState(eventId, {
         coords: { lat: position.coords.latitude, lng: position.coords.longitude },
         gpsReady: true,
@@ -82,58 +95,72 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
       });
     };
 
-    const requestPreciseLocation = () => {
+    let retryCount = 0;
+    const retryOrReport = (error: GeolocationPositionError) => {
+      if (error.code === error.PERMISSION_DENIED) {
+        reportLocationError(error);
+        return;
+      }
+
+      if (retryCount >= MAX_LOCATION_RETRIES) {
+        reportLocationError(error);
+        return;
+      }
+
+      retryCount += 1;
+      setGpsState(eventId, { isRequestingLocation: true, isRefiningLocation: false });
+      window.setTimeout(requestPosition, 500);
+    };
+
+    const requestPrecisePosition = () => {
       setGpsState(eventId, { isRefiningLocation: true });
       try {
         navigator.geolocation.getCurrentPosition(
           acceptPosition,
-          reportLocationError,
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+          retryOrReport,
+          { enableHighAccuracy: true, timeout: LOCATION_TIMEOUT_MS, maximumAge: 30000 }
         );
       } catch {
         reportUnexpectedError();
       }
     };
 
-    try {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const eventLatitude = event?.location_lat;
-          const eventLongitude = event?.location_lng;
-          const accuracy = position.coords.accuracy;
-          const distance = eventLatitude != null && eventLongitude != null
-            ? calculateDistance(
-                eventLatitude,
-                eventLongitude,
-                position.coords.latitude,
-                position.coords.longitude
-              )
-            : null;
-          const radius = event?.radius_meters || 100;
-          const safelyClassified =
-            distance !== null &&
-            (distance + accuracy <= radius || distance - accuracy > radius);
+    function requestPosition() {
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const eventLatitude = event?.location_lat;
+            const eventLongitude = event?.location_lng;
+            const accuracy = position.coords.accuracy;
+            const distance = eventLatitude != null && eventLongitude != null
+              ? calculateDistance(
+                  eventLatitude,
+                  eventLongitude,
+                  position.coords.latitude,
+                  position.coords.longitude
+                )
+              : null;
+            const radius = event?.radius_meters || 100;
+            const safelyClassified =
+              distance !== null &&
+              (distance + accuracy <= radius || distance - accuracy > radius);
 
-          if (safelyClassified) {
-            acceptPosition(position);
-            return;
-          }
+            if (safelyClassified) {
+              acceptPosition(position);
+              return;
+            }
 
-          requestPreciseLocation();
-        },
-        (error) => {
-          if (error.code === error.PERMISSION_DENIED) {
-            reportLocationError(error);
-            return;
-          }
-
-          requestPreciseLocation();
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
-      );
-    } catch {
-      reportUnexpectedError();
+            requestPrecisePosition();
+          },
+          retryOrReport,
+          { enableHighAccuracy: false, timeout: LOCATION_TIMEOUT_MS, maximumAge: 30000 }
+        );
+      } catch {
+        reportUnexpectedError();
+      }
     }
+
+    requestPosition();
   }, [event, eventId, setGpsState]);
 
   useEffect(() => {
