@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { getEvent } from '@/actions/events';
-import type { Event } from '@/types/database';
+import type { CheckinEvent } from '@/types/database';
 import { useCheckinStore } from '@/stores/checkin-store';
 
-// Tải thông tin phiên điểm danh và cung cấp trạng thái đang tải cho giao diện.
-export function useCheckinEvent(eventId?: string) {
+// Khởi tạo store từ dữ liệu đã được tải một lần trong Server Component.
+export function useCheckinEvent(initialEvent: CheckinEvent) {
+  const eventId = initialEvent.id;
   const activeEventId = useCheckinStore((state) => state.eventId);
   const event = useCheckinStore((state) => state.event);
   const loading = useCheckinStore((state) => state.loading);
@@ -16,18 +16,9 @@ export function useCheckinEvent(eventId?: string) {
 
   useEffect(() => {
     beginEvent(eventId);
-    if (!eventId) return;
-
-    let active = true;
-    getEvent(eventId).then((data) => {
-      if (!active) return;
-      setEvent(eventId, data as Event | null);
-      setLoading(eventId, false);
-    });
-    return () => {
-      active = false;
-    };
-  }, [beginEvent, eventId, setEvent, setLoading]);
+    setEvent(eventId, initialEvent);
+    setLoading(eventId, false);
+  }, [beginEvent, eventId, initialEvent, setEvent, setLoading]);
 
   return {
     event: activeEventId === eventId ? event : null,

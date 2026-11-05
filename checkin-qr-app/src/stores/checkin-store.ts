@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Event } from '@/types/database';
+import type { CheckinEvent } from '@/types/database';
 
 interface Coordinates {
   lat: number;
@@ -8,7 +8,7 @@ interface Coordinates {
 
 interface CheckinState {
   eventId: string | null;
-  event: Event | null;
+  event: CheckinEvent | null;
   loading: boolean;
   gpsReady: boolean;
   coords: Coordinates | null;
@@ -23,7 +23,7 @@ interface CheckinState {
   checkedInName: string;
   distanceResult: number | null;
   beginEvent: (eventId?: string) => void;
-  setEvent: (eventId: string, event: Event | null) => void;
+  setEvent: (eventId: string, event: CheckinEvent | null) => void;
   setLoading: (eventId: string, loading: boolean) => void;
   setGpsState: (eventId: string, update: Partial<CheckinState>) => void;
   setFieldValues: (

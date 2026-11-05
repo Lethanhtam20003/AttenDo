@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, type FormEvent } from 'react';
 import { checkIn } from '@/actions/checkin';
-import type { Event } from '@/types/database';
+import type { CheckinEvent } from '@/types/database';
 import { useCheckinStore } from '@/stores/checkin-store';
 
 interface Coordinates {
@@ -12,7 +12,7 @@ interface Coordinates {
 
 interface UseCheckinFormOptions {
   eventId?: string;
-  event: Event | null;
+  event: CheckinEvent | null;
   gpsReady: boolean;
   coords: Coordinates | null;
   currentDistance: number | null;
