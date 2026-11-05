@@ -6,11 +6,11 @@ import {
   PIN_MIN_REFRESH_SECONDS,
   QR_TOKEN_MAX_REFRESH_SECONDS,
   QR_TOKEN_MIN_REFRESH_SECONDS,
-} from '@/constants/checkin';
+} from '@/constants/checkIn';
 import type {
   ActionResult,
   AttendanceRecord,
-  CheckinEvent,
+  CheckInEvent,
   CustomFieldConfig,
   Event,
 } from '@/types/database';
@@ -93,7 +93,7 @@ export async function createEvent(
       location_lng: input.location_lng,
       radius_meters: input.radius_meters,
       custom_fields: input.custom_fields,
-      module_settings: { checkin: true, ...input.module_settings },
+      module_settings: { checkIn: true, ...input.module_settings },
     })
     .select('id')
     .single();
@@ -165,7 +165,7 @@ export async function getEvent(eventId: string) {
   return data;
 }
 
-export async function getCheckinEvent(eventId: string): Promise<CheckinEvent | null> {
+export async function getCheckInEvent(eventId: string): Promise<CheckInEvent | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase

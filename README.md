@@ -27,11 +27,11 @@
 Các lệnh sau được chạy trong thư mục ứng dụng:
 
 ```bash
-cd checkin-qr-app
+cd checkIn-qr-app
 bun install
 ```
 
-Tạo file `.env.local` trong `checkin-qr-app` với thông tin dự án Supabase:
+Tạo file `.env.local` trong `checkIn-qr-app` với thông tin dự án Supabase:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -40,8 +40,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 Thiết lập cơ sở dữ liệu trong Supabase:
 
-1. Mở **SQL Editor** của dự án Supabase và chạy `checkin-qr-app/supabase/schema.sql`.
-2. Chạy lần lượt các file trong `checkin-qr-app/supabase/migrations/` theo thứ tự tên file.
+1. Mở **SQL Editor** của dự án Supabase và chạy `checkIn-qr-app/supabase/schema.sql`.
+2. Chạy lần lượt các file trong `checkIn-qr-app/supabase/migrations/` theo thứ tự tên file.
 3. Tạo tài khoản người quản lý trong **Supabase Dashboard → Authentication → Users**. Ứng dụng không có chức năng đăng ký tài khoản công khai.
 
 Khởi động môi trường phát triển:
@@ -63,7 +63,7 @@ Mở [http://localhost:3000](http://localhost:3000). Đăng nhập bằng tài k
 | `/host/qr-pin/setup` | Tạo phiên xác thực bằng QR và PIN |
 | `/host/dynamic-qr/setup` | Tạo phiên sử dụng QR động |
 | `/host/live/[eventId]` | Màn hình Host của phiên |
-| `/checkin/[eventId]` | Biểu mẫu điểm danh cho người tham dự |
+| `/checkIn/[eventId]` | Biểu mẫu điểm danh cho người tham dự |
 
 Các trang `/host/*` yêu cầu đăng nhập. Tài khoản quản lý chỉ xem và quản lý các phiên do tài khoản đó tạo.
 

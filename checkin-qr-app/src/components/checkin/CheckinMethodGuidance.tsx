@@ -2,22 +2,22 @@
 
 import { MapPin, Navigation, QrCode } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import type { useCheckinLocation } from '@/hooks/checkin/useCheckinLocation';
-import type { CheckinRequirements } from '@/lib/checkin/solution';
-import type { CheckinEvent } from '@/types/database';
-import LocationHelpPrompt from '@/components/checkin/LocationHelpPrompt';
-import { detectCheckinEnvironment } from '@/lib/checkin/browser';
+import type { useCheckInLocation } from '@/hooks/checkIn/useCheckInLocation';
+import type { CheckInRequirements } from '@/lib/checkIn/solution';
+import type { CheckInEvent } from '@/types/database';
+import LocationHelpPrompt from '@/components/checkIn/LocationHelpPrompt';
+import { detectCheckInEnvironment } from '@/lib/checkIn/browser';
 
-type LocationState = ReturnType<typeof useCheckinLocation>;
+type LocationState = ReturnType<typeof useCheckInLocation>;
 
-export function CheckinMethodGuidance({
+export function CheckInMethodGuidance({
   event,
   requirements,
   location,
   userAgent,
 }: {
-  event: CheckinEvent;
-  requirements: CheckinRequirements;
+  event: CheckInEvent;
+  requirements: CheckInRequirements;
   location: LocationState | null;
   userAgent: string;
 }) {
@@ -31,7 +31,7 @@ export function CheckinMethodGuidance({
           <GpsGuidance event={event} location={location} />
           <LocationHelpPrompt
             key={location.isPermissionDenied ? 'permission-denied' : 'permission-prompt'}
-            {...detectCheckinEnvironment(
+            {...detectCheckInEnvironment(
               userAgent,
               typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints
             )}
@@ -74,7 +74,7 @@ export function CheckinMethodGuidance({
   );
 }
 
-function GpsGuidance({ event, location }: { event: CheckinEvent; location: LocationState }) {
+function GpsGuidance({ event, location }: { event: CheckInEvent; location: LocationState }) {
   if (location.gpsReady && location.coords) {
     return (
       <div

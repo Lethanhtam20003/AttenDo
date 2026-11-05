@@ -1,16 +1,16 @@
 export type DevicePlatform = 'android' | 'ios' | 'other';
-export type CheckinBrowser = 'zalo' | 'messenger' | 'facebook' | 'chrome' | 'safari' | 'other';
+export type CheckInBrowser = 'zalo' | 'messenger' | 'facebook' | 'chrome' | 'safari' | 'other';
 
-export interface CheckinEnvironment {
+export interface CheckInEnvironment {
   platform: DevicePlatform;
-  browser: CheckinBrowser;
+  browser: CheckInBrowser;
   inAppBrowser: boolean;
 }
 
-export function detectCheckinEnvironment(
+export function detectCheckInEnvironment(
   userAgent: string,
   maxTouchPoints = 0
-): CheckinEnvironment {
+): CheckInEnvironment {
   const isIOS =
     /iPhone|iPad|iPod/i.test(userAgent) ||
     (/Macintosh/i.test(userAgent) && maxTouchPoints > 1);

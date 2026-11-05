@@ -1,14 +1,14 @@
 import { create } from 'zustand';
-import type { CheckinEvent } from '@/types/database';
+import type { CheckInEvent } from '@/types/database';
 
 interface Coordinates {
   lat: number;
   lng: number;
 }
 
-interface CheckinState {
+interface CheckInState {
   eventId: string | null;
-  event: CheckinEvent | null;
+  event: CheckInEvent | null;
   loading: boolean;
   gpsReady: boolean;
   coords: Coordinates | null;
@@ -24,9 +24,9 @@ interface CheckinState {
   checkedInName: string;
   distanceResult: number | null;
   beginEvent: (eventId?: string) => void;
-  setEvent: (eventId: string, event: CheckinEvent | null) => void;
+  setEvent: (eventId: string, event: CheckInEvent | null) => void;
   setLoading: (eventId: string, loading: boolean) => void;
-  setGpsState: (eventId: string, update: Partial<CheckinState>) => void;
+  setGpsState: (eventId: string, update: Partial<CheckInState>) => void;
   setFieldValues: (
     eventId: string,
     values: Record<string, string> | ((current: Record<string, string>) => Record<string, string>)
@@ -55,7 +55,7 @@ const emptyState = {
   distanceResult: null,
 };
 
-export const useCheckinStore = create<CheckinState>((set) => ({
+export const useCheckInStore = create<CheckInState>((set) => ({
   eventId: null,
   ...emptyState,
   beginEvent: (eventId) => set({ eventId: eventId ?? null, ...emptyState }),

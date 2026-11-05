@@ -38,7 +38,7 @@ export interface Event {
   custom_fields: CustomFieldConfig[];
 }
 
-export type CheckinEvent = Pick<
+export type CheckInEvent = Pick<
   Event,
   | 'id'
   | 'title'

@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import { Check, Copy, ExternalLink, HelpCircle, X } from 'lucide-react';
-import type { CheckinBrowser, DevicePlatform } from '@/lib/checkin/browser';
+import type { CheckInBrowser, DevicePlatform } from '@/lib/checkIn/browser';
 import { useToolsStore } from '@/stores/tools-store';
 
 function subscribeToLocation(onChange: () => void) {
@@ -18,14 +18,14 @@ function getPageUrl() {
   return window.location.href;
 }
 
-function getIosAppName(browser: CheckinBrowser) {
+function getIosAppName(browser: CheckInBrowser) {
   if (browser === 'zalo') return 'Zalo';
   if (browser === 'chrome') return 'Chrome';
   if (browser === 'safari') return 'Safari';
   return 'trình duyệt đang dùng';
 }
 
-function getAndroidAppName(browser: CheckinBrowser) {
+function getAndroidAppName(browser: CheckInBrowser) {
   if (browser === 'zalo') return 'Zalo';
   if (browser === 'chrome') return 'Chrome';
   return 'trình duyệt đang dùng';
@@ -33,7 +33,7 @@ function getAndroidAppName(browser: CheckinBrowser) {
 
 interface LocationHelpPromptProps {
   platform: DevicePlatform;
-  browser: CheckinBrowser;
+  browser: CheckInBrowser;
   permissionDenied: boolean;
 }
 
@@ -228,7 +228,7 @@ function getPlatformName(platform: DevicePlatform) {
   return 'thiết bị khác';
 }
 
-function getBrowserName(browser: CheckinBrowser) {
+function getBrowserName(browser: CheckInBrowser) {
   if (browser === 'zalo') return 'Zalo';
   if (browser === 'chrome') return 'Chrome';
   if (browser === 'safari') return 'Safari';

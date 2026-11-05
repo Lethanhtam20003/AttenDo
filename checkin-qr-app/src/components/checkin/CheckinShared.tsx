@@ -2,13 +2,13 @@
 
 import Image from 'next/image';
 import { CheckCircle2, Loader2, ShieldAlert } from 'lucide-react';
-import type { CheckinRequirements } from '@/lib/checkin/solution';
+import type { CheckInRequirements } from '@/lib/checkIn/solution';
 import type { CustomFieldConfig } from '@/types/database';
-import type { useCheckinForm } from '@/hooks/checkin/useCheckinForm';
+import type { useCheckInForm } from '@/hooks/checkIn/useCheckInForm';
 
-export type CheckinFormState = ReturnType<typeof useCheckinForm>;
+export type CheckInFormState = ReturnType<typeof useCheckInForm>;
 
-export function CheckinHeader({ title }: { title: string }) {
+export function CheckInHeader({ title }: { title: string }) {
   return (
     <header className="pb-3 pt-1 text-center">
       <Image
@@ -25,7 +25,7 @@ export function CheckinHeader({ title }: { title: string }) {
   );
 }
 
-export function CheckinLoadingState({ message = 'Đang tải thông tin phiên điểm danh...' }: { message?: string }) {
+export function CheckInLoadingState({ message = 'Đang tải thông tin phiên điểm danh...' }: { message?: string }) {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-slate-50 p-4">
       <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -34,7 +34,7 @@ export function CheckinLoadingState({ message = 'Đang tải thông tin phiên �
   );
 }
 
-export function CheckinUnavailableState({ closed = false }: { closed?: boolean }) {
+export function CheckInUnavailableState({ closed = false }: { closed?: boolean }) {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
       <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center">
@@ -52,13 +52,13 @@ export function CheckinUnavailableState({ closed = false }: { closed?: boolean }
   );
 }
 
-export function CheckinSuccessState({
+export function CheckInSuccessState({
   form,
   requirements,
   coordinates,
 }: {
-  form: CheckinFormState;
-  requirements: CheckinRequirements;
+  form: CheckInFormState;
+  requirements: CheckInRequirements;
   coordinates: { lat: number; lng: number } | null;
 }) {
   const methods = [
@@ -123,7 +123,7 @@ export function AttendeeFields({
 }: {
   fields: CustomFieldConfig[];
   values: Record<string, string>;
-  onChange: CheckinFormState['setFieldValues'];
+  onChange: CheckInFormState['setFieldValues'];
 }) {
   return (
     <div className="space-y-3 pt-1">
@@ -168,12 +168,12 @@ export function AttendeeFields({
   );
 }
 
-export function CheckinSubmitState({
+export function CheckInSubmitState({
   form,
   disabled,
   label,
 }: {
-  form: CheckinFormState;
+  form: CheckInFormState;
   disabled: boolean;
   label: string;
 }) {

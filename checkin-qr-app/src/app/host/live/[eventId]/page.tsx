@@ -8,7 +8,7 @@ import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
 import {
   getPinRefreshSeconds,
   getQrTokenRefreshSeconds,
-} from '@/constants/checkin';
+} from '@/constants/checkIn';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
 import { useHostLiveStore } from '@/stores/host-live-store';
 
@@ -26,7 +26,7 @@ function HostLiveContent() {
     pin,
     timeLeft,
     sessionTimeLeft,
-    checkinUrl,
+    checkInUrl,
     qrTimeLeft,
     qrError,
     handleRotatePin,
@@ -52,7 +52,7 @@ function HostLiveContent() {
   );
 
   const handleShareQr = async () => {
-    if (!checkinUrl || isSharingQr) return;
+    if (!checkInUrl || isSharingQr) return;
 
     setIsSharingQr(eventId, true);
     setShareMessage(eventId, null);
@@ -60,7 +60,7 @@ function HostLiveContent() {
     setCopyFallbackUrl(eventId, false);
 
     try {
-      const canvas = document.getElementById('checkin-qr-code');
+      const canvas = document.getElementById('checkIn-qr-code');
       if (!(canvas instanceof HTMLCanvasElement)) {
         throw new Error('Chưa có mã QR để chia sẻ. Vui lòng đợi mã QR tải xong.');
       }
@@ -76,7 +76,7 @@ function HostLiveContent() {
       const shareData: ShareData = {
         title: `Mã QR điểm danh - ${event?.title ?? 'Phiên điểm danh'}`,
         text: `Quét mã QR để điểm danh${event?.title ? `: ${event.title}` : ''}.`,
-        url: checkinUrl,
+        url: checkInUrl,
       };
 
       if (navigator.share && navigator.canShare?.({ files: [qrFile] })) {
@@ -86,14 +86,14 @@ function HostLiveContent() {
         await navigator.share(shareData);
         setShareMessage(eventId, 'Đã mở bảng chia sẻ. Chọn Zalo để gửi liên kết check-in.');
       } else {
-        await navigator.clipboard.writeText(checkinUrl);
+        await navigator.clipboard.writeText(checkInUrl);
         setShareMessage(eventId, 'Thiết bị chưa hỗ trợ chia sẻ trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
 
       try {
-        await navigator.clipboard.writeText(checkinUrl);
+        await navigator.clipboard.writeText(checkInUrl);
         setShareMessage(eventId, 'Không thể chia sẻ mã QR trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
       } catch {
         setShareError(eventId,
@@ -228,7 +228,7 @@ function HostLiveContent() {
         </div>
       )}
 
-      {showQrModal && checkinUrl && event?.status === 'active' && (
+      {showQrModal && checkInUrl && event?.status === 'active' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
           onMouseDown={(mouseEvent) => {
@@ -256,7 +256,7 @@ function HostLiveContent() {
             </div>
             <div className="mt-5 flex w-full justify-center rounded-2xl border border-slate-200 bg-white p-3">
               <QRCodeCanvas
-                value={checkinUrl}
+                value={checkInUrl}
                 size={360}
                 level="M"
                 includeMargin
@@ -295,10 +295,10 @@ function HostLiveContent() {
 
             {/* QR Code thực tế */}
             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-inner mb-3">
-              {checkinUrl ? (
+              {checkInUrl ? (
                 <QRCodeCanvas
-                  id="checkin-qr-code"
-                  value={checkinUrl}
+                  id="checkIn-qr-code"
+                  value={checkInUrl}
                   size={200}
                   level="M"
                   includeMargin
@@ -314,7 +314,7 @@ function HostLiveContent() {
               <button
                 type="button"
                 onClick={() => setShowQrModal(eventId, true)}
-                disabled={!checkinUrl}
+                disabled={!checkInUrl}
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Maximize2 className="h-4 w-4" />
@@ -323,7 +323,7 @@ function HostLiveContent() {
               <button
                 type="button"
                 onClick={() => void handleShareQr()}
-                disabled={!checkinUrl || isSharingQr}
+                disabled={!checkInUrl || isSharingQr}
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSharingQr ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
@@ -342,7 +342,7 @@ function HostLiveContent() {
                   <input
                     aria-label="Liên kết check-in để sao chép thủ công"
                     readOnly
-                    value={checkinUrl}
+                    value={checkInUrl}
                     onFocus={(inputEvent) => inputEvent.currentTarget.select()}
                     className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900"
                   />
@@ -357,14 +357,14 @@ function HostLiveContent() {
                 </p>
               </div>
             )}
-            {checkinUrl && (
+            {checkInUrl && (
               event?.module_settings?.dynamic_qr === true ? (
                 <p className="text-xs text-slate-500">
                   Mã QR tự đổi sau {getQrTokenRefreshSeconds(event.module_settings.dynamic_qr_interval_seconds)} giây · còn {qrTimeLeft}s
                 </p>
               ) : (
                 <p className="text-[11px] text-slate-400 font-mono break-all px-2 select-all">
-                  {checkinUrl}
+                  {checkInUrl}
                 </p>
               )
             )}

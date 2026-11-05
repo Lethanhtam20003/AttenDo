@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import type { CheckinEvent } from '@/types/database';
-import { useCheckinStore } from '@/stores/checkin-store';
+import type { CheckInEvent } from '@/types/database';
+import { useCheckInStore } from '@/stores/checkIn-store';
 
 // Tính khoảng cách giữa hai tọa độ GPS theo mét bằng công thức Haversine.
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -19,16 +19,16 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 }
 
 // Xin quyền GPS, tính khoảng cách đến sự kiện và kiểm tra giới hạn geofence.
-export function useCheckinLocation(event: CheckinEvent | null, pauseAutoRequest = false) {
+export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest = false) {
   const eventId = event?.id;
-  const activeEventId = useCheckinStore((state) => state.eventId);
-  const gpsReady = useCheckinStore((state) => state.gpsReady);
-  const coords = useCheckinStore((state) => state.coords);
-  const gpsError = useCheckinStore((state) => state.gpsError);
-  const isRequestingLocation = useCheckinStore((state) => state.isRequestingLocation);
-  const isRefiningLocation = useCheckinStore((state) => state.isRefiningLocation);
-  const isPermissionDenied = useCheckinStore((state) => state.isPermissionDenied);
-  const setGpsState = useCheckinStore((state) => state.setGpsState);
+  const activeEventId = useCheckInStore((state) => state.eventId);
+  const gpsReady = useCheckInStore((state) => state.gpsReady);
+  const coords = useCheckInStore((state) => state.coords);
+  const gpsError = useCheckInStore((state) => state.gpsError);
+  const isRequestingLocation = useCheckInStore((state) => state.isRequestingLocation);
+  const isRefiningLocation = useCheckInStore((state) => state.isRefiningLocation);
+  const isPermissionDenied = useCheckInStore((state) => state.isPermissionDenied);
+  const setGpsState = useCheckInStore((state) => state.setGpsState);
 
   const requestLocation = useCallback(() => {
     if (!eventId) return;

@@ -10,7 +10,7 @@ import {
   QR_TOKEN_LIFETIME_SECONDS,
   getPinRefreshSeconds,
   getQrTokenRefreshSeconds,
-} from '@/constants/checkin';
+} from '@/constants/checkIn';
 import type { EventPin, Event } from '@/types/database';
 import { useHostLiveStore } from '@/stores/host-live-store';
 
@@ -20,7 +20,7 @@ export function useHostLiveSession(eventId?: string) {
   const storedPin = useHostLiveStore((state) => state.pin);
   const storedTimeLeft = useHostLiveStore((state) => state.timeLeft);
   const storedSessionTimeLeft = useHostLiveStore((state) => state.sessionTimeLeft);
-  const storedCheckinUrl = useHostLiveStore((state) => state.checkinUrl);
+  const storedCheckInUrl = useHostLiveStore((state) => state.checkInUrl);
   const storedQrTimeLeft = useHostLiveStore((state) => state.qrTimeLeft);
   const storedQrError = useHostLiveStore((state) => state.qrError);
   const storedIsEnding = useHostLiveStore((state) => state.isEnding);
@@ -28,7 +28,7 @@ export function useHostLiveSession(eventId?: string) {
   const beginEvent = useHostLiveStore((state) => state.beginEvent);
   const setStoredEvent = useHostLiveStore((state) => state.setEvent);
   const setStoredPin = useHostLiveStore((state) => state.setPin);
-  const setStoredCheckinUrl = useHostLiveStore((state) => state.setCheckinUrl);
+  const setStoredCheckInUrl = useHostLiveStore((state) => state.setCheckInUrl);
   const setStoredQrTimeLeft = useHostLiveStore((state) => state.setQrTimeLeft);
   const setStoredQrError = useHostLiveStore((state) => state.setQrError);
   const setStoredSessionTimeLeft = useHostLiveStore((state) => state.setSessionTimeLeft);
@@ -39,7 +39,7 @@ export function useHostLiveSession(eventId?: string) {
   const pin = isCurrentEvent ? storedPin : '----';
   const timeLeft = isCurrentEvent ? storedTimeLeft : PIN_LIFETIME_SECONDS;
   const sessionTimeLeft = isCurrentEvent ? storedSessionTimeLeft : null;
-  const checkinUrl = isCurrentEvent ? storedCheckinUrl : '';
+  const checkInUrl = isCurrentEvent ? storedCheckInUrl : '';
   const qrTimeLeft = isCurrentEvent ? storedQrTimeLeft : QR_TOKEN_LIFETIME_SECONDS;
   const qrError = isCurrentEvent ? storedQrError : null;
   const isEnding = isCurrentEvent && storedIsEnding;
@@ -61,16 +61,16 @@ export function useHostLiveSession(eventId?: string) {
         return;
       }
 
-      const url = new URL(`/checkin/${eventId}`, window.location.origin);
+      const url = new URL(`/checkIn/${eventId}`, window.location.origin);
       url.searchParams.set('qr', result.data.token);
-      setStoredCheckinUrl(eventId, url.toString());
+      setStoredCheckInUrl(eventId, url.toString());
       setStoredQrTimeLeft(eventId, refreshSeconds);
       setStoredQrError(eventId, null);
     } catch (error) {
       setStoredQrError(eventId, error instanceof Error ? error.message : 'Không thể làm mới mã QR.');
       setStoredQrTimeLeft(eventId, 5);
     }
-  }, [eventId, setStoredCheckinUrl, setStoredQrError, setStoredQrTimeLeft]);
+  }, [eventId, setStoredCheckInUrl, setStoredQrError, setStoredQrTimeLeft]);
 
   useEffect(() => {
     if (!eventId) return;
@@ -99,10 +99,10 @@ export function useHostLiveSession(eventId?: string) {
           getQrTokenRefreshSeconds(data.module_settings?.dynamic_qr_interval_seconds)
         );
       } else if (data.module_settings?.dynamic_qr !== true) {
-        setStoredCheckinUrl(eventId, `${window.location.origin}/checkin/${eventId}`);
+        setStoredCheckInUrl(eventId, `${window.location.origin}/checkIn/${eventId}`);
       }
     });
-  }, [eventId, refreshDynamicQr, setStoredCheckinUrl, setStoredEvent, setStoredPin]);
+  }, [eventId, refreshDynamicQr, setStoredCheckInUrl, setStoredEvent, setStoredPin]);
 
   const qrRefreshSeconds = getQrTokenRefreshSeconds(
     event?.module_settings?.dynamic_qr_interval_seconds
@@ -235,7 +235,7 @@ export function useHostLiveSession(eventId?: string) {
     event,
     pin,
     timeLeft,
-    checkinUrl,
+    checkInUrl,
     qrTimeLeft,
     qrError,
     handleRotatePin,

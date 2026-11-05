@@ -1,12 +1,12 @@
-import type { CheckinEvent } from '@/types/database';
+import type { CheckInEvent } from '@/types/database';
 
-export interface CheckinRequirements {
+export interface CheckInRequirements {
   requireLocation: boolean;
   requirePin: boolean;
   dynamicQr: boolean;
 }
 
-export function getCheckinRequirements(event: CheckinEvent): CheckinRequirements {
+export function getCheckInRequirements(event: CheckInEvent): CheckInRequirements {
   return {
     requireLocation: event.module_settings?.require_location !== false,
     requirePin: event.module_settings?.require_pin !== false,

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { AttendanceRecord, Event } from '@/types/database';
-import { PIN_LIFETIME_SECONDS, QR_TOKEN_LIFETIME_SECONDS } from '@/constants/checkin';
+import { PIN_LIFETIME_SECONDS, QR_TOKEN_LIFETIME_SECONDS } from '@/constants/checkIn';
 
 interface HostLiveState {
   eventId: string | null;
@@ -8,7 +8,7 @@ interface HostLiveState {
   pin: string;
   timeLeft: number;
   sessionTimeLeft: number | null;
-  checkinUrl: string;
+  checkInUrl: string;
   qrTimeLeft: number;
   qrError: string | null;
   isEnding: boolean;
@@ -24,7 +24,7 @@ interface HostLiveState {
   beginEvent: (eventId?: string) => void;
   setEvent: (eventId: string, event: Event | null) => void;
   setPin: (eventId: string, pin: string, timeLeft?: number) => void;
-  setCheckinUrl: (eventId: string, url: string) => void;
+  setCheckInUrl: (eventId: string, url: string) => void;
   setQrTimeLeft: (eventId: string, seconds: number) => void;
   setQrError: (eventId: string, error: string | null) => void;
   setSessionTimeLeft: (eventId: string, seconds: number | null) => void;
@@ -46,7 +46,7 @@ const emptyState = {
   pin: '----',
   timeLeft: PIN_LIFETIME_SECONDS,
   sessionTimeLeft: null,
-  checkinUrl: '',
+  checkInUrl: '',
   qrTimeLeft: QR_TOKEN_LIFETIME_SECONDS,
   qrError: null,
   isEnding: false,
@@ -73,8 +73,8 @@ export const useHostLiveStore = create<HostLiveState>((set) => ({
       ? { pin, ...(timeLeft === undefined ? {} : { timeLeft }) }
       : {}
   )),
-  setCheckinUrl: (eventId, checkinUrl) => set((state) => (
-    state.eventId === eventId ? { checkinUrl } : {}
+  setCheckInUrl: (eventId, checkInUrl) => set((state) => (
+    state.eventId === eventId ? { checkInUrl } : {}
   )),
   setQrTimeLeft: (eventId, qrTimeLeft) => set((state) => (
     state.eventId === eventId ? { qrTimeLeft } : {}

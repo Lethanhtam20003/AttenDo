@@ -2,19 +2,19 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import { Lock } from 'lucide-react';
-import { useCheckinForm } from '@/hooks/checkin/useCheckinForm';
-import { useCheckinLocation } from '@/hooks/checkin/useCheckinLocation';
-import { CheckinMethodGuidance } from '@/components/checkin/CheckinMethodGuidance';
+import { useCheckInForm } from '@/hooks/checkIn/useCheckInForm';
+import { useCheckInLocation } from '@/hooks/checkIn/useCheckInLocation';
+import { CheckInMethodGuidance } from '@/components/checkIn/CheckInMethodGuidance';
 import {
   AttendeeFields,
-  CheckinHeader,
-  CheckinLoadingState,
-  CheckinSubmitState,
-  CheckinSuccessState,
-} from '@/components/checkin/CheckinShared';
-import { useCheckinEvent } from '@/hooks/checkin/useCheckinEvent';
-import type { CheckinRequirements } from '@/lib/checkin/solution';
-import type { CheckinEvent } from '@/types/database';
+  CheckInHeader,
+  CheckInLoadingState,
+  CheckInSubmitState,
+  CheckInSuccessState,
+} from '@/components/checkIn/CheckInShared';
+import { useCheckInEvent } from '@/hooks/checkIn/useCheckInEvent';
+import type { CheckInRequirements } from '@/lib/checkIn/solution';
+import type { CheckInEvent } from '@/types/database';
 
 function subscribeToBrowser() {
   return () => {};
@@ -24,31 +24,31 @@ function getUserAgent() {
   return navigator.userAgent;
 }
 
-export function CheckinExperience({
+export function CheckInExperience({
   event,
   requirements,
 }: {
-  event: CheckinEvent;
-  requirements: CheckinRequirements;
+  event: CheckInEvent;
+  requirements: CheckInRequirements;
 }) {
-  const { loading } = useCheckinEvent(event);
-  if (loading) return <CheckinLoadingState />;
+  const { loading } = useCheckInEvent(event);
+  if (loading) return <CheckInLoadingState />;
 
   if (requirements.requireLocation) {
-    return <GpsCheckinExperience event={event} requirements={requirements} />;
+    return <GpsCheckInExperience event={event} requirements={requirements} />;
   }
-  return <NonGpsCheckinExperience event={event} requirements={requirements} />;
+  return <NonGpsCheckInExperience event={event} requirements={requirements} />;
 }
 
-function GpsCheckinExperience({
+function GpsCheckInExperience({
   event,
   requirements,
 }: {
-  event: CheckinEvent;
-  requirements: CheckinRequirements;
+  event: CheckInEvent;
+  requirements: CheckInRequirements;
 }) {
   const userAgent = useSyncExternalStore(subscribeToBrowser, getUserAgent, () => '');
-  const location = useCheckinLocation(event, true);
+  const location = useCheckInLocation(event, true);
   const requestLocation = location.requestLocation;
 
   useEffect(() => {
@@ -75,7 +75,7 @@ function GpsCheckinExperience({
   }, [requestLocation, userAgent]);
 
   return (
-    <CheckinFormExperience
+    <CheckInFormExperience
       event={event}
       requirements={requirements}
       location={location}
@@ -84,28 +84,28 @@ function GpsCheckinExperience({
   );
 }
 
-function NonGpsCheckinExperience({
+function NonGpsCheckInExperience({
   event,
   requirements,
 }: {
-  event: CheckinEvent;
-  requirements: CheckinRequirements;
+  event: CheckInEvent;
+  requirements: CheckInRequirements;
 }) {
-  return <CheckinFormExperience event={event} requirements={requirements} location={null} userAgent="" />;
+  return <CheckInFormExperience event={event} requirements={requirements} location={null} userAgent="" />;
 }
 
-function CheckinFormExperience({
+function CheckInFormExperience({
   event,
   requirements,
   location,
   userAgent,
 }: {
-  event: CheckinEvent;
-  requirements: CheckinRequirements;
-  location: ReturnType<typeof useCheckinLocation> | null;
+  event: CheckInEvent;
+  requirements: CheckInRequirements;
+  location: ReturnType<typeof useCheckInLocation> | null;
   userAgent: string;
 }) {
-  const form = useCheckinForm({
+  const form = useCheckInForm({
     eventId: event.id,
     event,
     gpsReady: location?.gpsReady ?? false,
@@ -116,7 +116,7 @@ function CheckinFormExperience({
 
   if (form.isSuccess) {
     return (
-      <CheckinSuccessState
+      <CheckInSuccessState
         form={form}
         requirements={requirements}
         coordinates={location?.coords ?? null}
@@ -133,13 +133,13 @@ function CheckinFormExperience({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-slate-50 px-4 py-4 sm:py-6">
-      <CheckinHeader title={event.title} />
+      <CheckInHeader title={event.title} />
 
       <form
         onSubmit={form.handleSubmit}
         className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
       >
-        <CheckinMethodGuidance
+        <CheckInMethodGuidance
           event={event}
           requirements={requirements}
           location={location}
@@ -154,11 +154,11 @@ function CheckinFormExperience({
 
         {requirements.requirePin && (
           <div className="pt-2">
-            <label htmlFor="checkin-pin" className="mb-1 block text-center text-xs font-semibold text-slate-700">
+            <label htmlFor="checkIn-pin" className="mb-1 block text-center text-xs font-semibold text-slate-700">
               Mã PIN trên màn hình trình chiếu <span className="text-rose-500">*</span>
             </label>
             <input
-              id="checkin-pin"
+              id="checkIn-pin"
               type="text"
               inputMode="numeric"
               maxLength={4}
@@ -174,7 +174,7 @@ function CheckinFormExperience({
           </div>
         )}
 
-        <CheckinSubmitState
+        <CheckInSubmitState
           form={form}
           disabled={
             (requirements.requireLocation &&

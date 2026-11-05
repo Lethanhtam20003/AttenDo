@@ -2,7 +2,7 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { getAttendanceList } from '@/actions/checkin';
+import { getAttendanceList } from '@/actions/checkIn';
 import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import type { AttendanceRecord, Event } from '@/types/database';
 import { useHostLiveStore } from '@/stores/host-live-store';

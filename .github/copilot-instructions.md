@@ -5,9 +5,9 @@
 - Get straight to the point. If fixing a bug, output ONLY the modified code blocks; do not print the entire file unless explicitly requested.
 
 ## 2. Stack and Commands
-- App lives in `checkin-qr-app/` and uses Bun, Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS 4, and Supabase (`@supabase/ssr`, `@supabase/supabase-js`).
-- Read `checkin-qr-app/docs/PROJECT_CONTEXT.md` for a concise product, architecture, route, state-store, and database overview. Treat it as orientation; verify the relevant source and migrations before making changes.
-- Run commands from `checkin-qr-app/`: `bun install`, `bun run dev`, `bun run lint`, and `bun run build`.
+- App lives in `checkIn-qr-app/` and uses Bun, Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS 4, and Supabase (`@supabase/ssr`, `@supabase/supabase-js`).
+- Read `checkIn-qr-app/docs/PROJECT_CONTEXT.md` for a concise product, architecture, route, state-store, and database overview. Treat it as orientation; verify the relevant source and migrations before making changes.
+- Run commands from `checkIn-qr-app/`: `bun install`, `bun run dev`, `bun run lint`, and `bun run build`.
 - TypeScript alias: `@/*` maps to `src/*`. There is no test script in `package.json`.
 - DO NOT manually import third-party libraries (e.g., axios, moment, lodash, redux) unless explicitly requested by the user. Always use `lucide-react` for icons.
 
@@ -30,7 +30,7 @@
   - `kebab-case` for directories and route files (`[eventId]/page.tsx`).
   - `PascalCase` for React Components (`QRScanner.tsx`).
   - `camelCase` for variables, custom hooks (`useLocation.ts`), and utilities (`geo.ts`).
-- **Booleans:** Prefix with `is`, `has`, `should`, or `can` (e.g., `isCheckingIn`, `hasPermission`).
+- **Booleans:** Prefix with `is`, `has`, `should`, or `can` (e.g., `isCheckIngIn`, `hasPermission`).
 - **Handlers:** Prefix with `handle` for internal functions, `on` for event props (e.g., `onScanSuccess`).
 - **Clean Code:** Apply **Early Return** to avoid deeply nested `if/else` blocks. Do not use the `any` type. Extract repetitive logic into Custom Hooks or Utils.
 
