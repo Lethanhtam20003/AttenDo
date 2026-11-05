@@ -106,7 +106,7 @@ export default function LocationHelpPrompt({
                 <p className="mt-1 text-xs leading-relaxed text-slate-600">
                   {permissionDenied
                     ? 'Thiết bị đã từ chối quyền vị trí. Hãy bật lại theo hướng dẫn bên dưới, sau đó quay lại trang và nhấn Thử lại.'
-                    : 'Trang đang tự yêu cầu vị trí. Nếu GPS chưa hoạt động, hãy làm theo hướng dẫn dưới đây.'}
+                    : 'Nhấn Cho phép vị trí trên biểu mẫu để yêu cầu GPS. Nếu không lấy được vị trí, hãy làm theo hướng dẫn dưới đây.'}
                 </p>
                 <p className="mt-2 text-[11px] font-medium text-slate-500">
                   Nhận diện: {getPlatformName(platform)} · {getBrowserName(browser)}

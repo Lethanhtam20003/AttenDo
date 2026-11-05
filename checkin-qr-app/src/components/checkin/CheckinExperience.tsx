@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { Lock } from 'lucide-react';
 import { useCheckinForm } from '@/hooks/checkin/useCheckinForm';
 import { useCheckinLocation } from '@/hooks/checkin/useCheckinLocation';
@@ -13,19 +13,8 @@ import {
   CheckinSuccessState,
 } from '@/components/checkin/CheckinShared';
 import { useCheckinEvent } from '@/hooks/checkin/useCheckinEvent';
-import { detectCheckinEnvironment } from '@/lib/checkin/browser';
 import type { CheckinRequirements } from '@/lib/checkin/solution';
 import type { CheckinEvent } from '@/types/database';
-
-type LocationPermissionStep =
-  | 'checking'
-  | 'prompt'
-  | 'requesting'
-  | 'granted'
-  | 'acquired'
-  | 'refused'
-  | 'denied'
-  | 'error';
 
 function subscribeToBrowser() {
   return () => {};
@@ -61,70 +50,29 @@ function GpsCheckinExperience({
   const userAgent = useSyncExternalStore(subscribeToBrowser, getUserAgent, () => '');
   const location = useCheckinLocation(event, true);
   const requestLocation = location.requestLocation;
-  const [permissionStep, setPermissionStep] = useState<LocationPermissionStep>('checking');
 
   useEffect(() => {
     if (!userAgent) return;
 
     let active = true;
-    const checkExistingPermission = async () => {
-      if (!navigator.permissions) {
-        setPermissionStep('prompt');
-        return;
-      }
+    const requestIfAlreadyGranted = async () => {
+      if (!navigator.permissions) return;
 
       try {
         const permission = await navigator.permissions.query({ name: 'geolocation' });
         if (!active) return;
 
-        if (permission.state === 'granted') {
-          setPermissionStep('granted');
-          requestLocation();
-        } else {
-          setPermissionStep('prompt');
-        }
+        if (permission.state === 'granted') requestLocation();
       } catch (error) {
-        console.warn('Unable to check geolocation permission; asking before requesting location.', error);
-        if (active) setPermissionStep('prompt');
+        console.warn('Unable to check geolocation permission; waiting for the user to request it.', error);
       }
     };
 
-    void checkExistingPermission();
+    void requestIfAlreadyGranted();
     return () => {
       active = false;
     };
   }, [requestLocation, userAgent]);
-
-  const permissionError =
-    location.gpsError &&
-    (permissionStep === 'requesting' || permissionStep === 'granted');
-  const effectivePermissionStep: LocationPermissionStep = permissionError
-    ? location.isPermissionDenied
-      ? 'denied'
-      : 'error'
-    : permissionStep === 'requesting' && location.gpsReady
-      ? 'acquired'
-      : permissionStep;
-
-  if (effectivePermissionStep === 'checking') {
-    return <CheckinLoadingState message="Đang kiểm tra quyền truy cập vị trí..." />;
-  }
-
-  if (effectivePermissionStep !== 'granted' && effectivePermissionStep !== 'acquired') {
-    return (
-      <LocationPermissionStepView
-        event={event}
-        step={effectivePermissionStep}
-        error={location.gpsError}
-        userAgent={userAgent}
-        onGrant={() => {
-          setPermissionStep('requesting');
-          requestLocation();
-        }}
-        onRefuse={() => setPermissionStep('refused')}
-      />
-    );
-  }
 
   return (
     <CheckinFormExperience
@@ -133,135 +81,6 @@ function GpsCheckinExperience({
       location={location}
       userAgent={userAgent}
     />
-  );
-}
-
-function LocationPermissionStepView({
-  event,
-  step,
-  error,
-  userAgent,
-  onGrant,
-  onRefuse,
-}: {
-  event: CheckinEvent;
-  step: LocationPermissionStep;
-  error: string | null;
-  userAgent: string;
-  onGrant: () => void;
-  onRefuse: () => void;
-}) {
-  const environment = detectCheckinEnvironment(
-    userAgent,
-    typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints
-  );
-  const isRecovery = step === 'denied' || step === 'error';
-  const isRefused = step === 'refused';
-
-  return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-slate-50 px-4 py-4 sm:py-6">
-      <CheckinHeader title={event.title} />
-
-      <section
-        role={step === 'prompt' ? 'dialog' : 'alert'}
-        aria-modal={step === 'prompt' ? true : undefined}
-        aria-labelledby="gps-permission-title"
-        className={
-          step === 'prompt'
-            ? 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4'
-            : 'my-auto rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6'
-        }
-      >
-        <div className={step === 'prompt'
-          ? 'w-full max-w-md rounded-2xl bg-white p-5 shadow-xl sm:p-6'
-          : undefined}>
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-            <span aria-hidden="true" className="text-xl">⌖</span>
-          </div>
-          <h2 id="gps-permission-title" className="text-lg font-bold text-slate-900">
-            {step === 'prompt'
-              ? 'Cho phép truy cập vị trí'
-              : isRefused
-                ? 'Không thể điểm danh nếu không cho phép vị trí'
-                : 'Không thể truy cập vị trí'}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            {step === 'prompt'
-              ? 'Phiên này sử dụng GPS để xác minh bạn đang ở trong khu vực điểm danh. Vị trí sẽ được kiểm tra khi bạn gửi biểu mẫu.'
-              : isRefused
-                ? 'Cần có quyền truy cập vị trí để tiếp tục điểm danh phiên này.'
-                : error || 'Trình duyệt chưa cấp quyền vị trí cho trang điểm danh.'}
-          </p>
-
-          {isRecovery && (
-            <LocationRecoveryGuide
-              platform={environment.platform}
-              browser={environment.browser}
-              inAppBrowser={environment.inAppBrowser}
-            />
-          )}
-
-          {step === 'requesting' ? (
-            <p role="status" className="mt-5 text-center text-sm font-medium text-blue-700">
-              Đang chờ quyền vị trí và xác định vị trí của bạn...
-            </p>
-          ) : (
-            <div className="mt-5 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={onGrant}
-                className="min-h-12 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/20"
-              >
-                {isRecovery || isRefused ? 'Thử lại / Cấp quyền vị trí' : 'Cho phép vị trí'}
-              </button>
-              {!isRecovery && !isRefused && (
-                <button
-                  type="button"
-                  onClick={onRefuse}
-                  className="min-h-11 w-full rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                >
-                  Từ chối điểm danh
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function LocationRecoveryGuide({
-  platform,
-  browser,
-  inAppBrowser,
-}: {
-  platform: 'android' | 'ios' | 'other';
-  browser: 'zalo' | 'messenger' | 'facebook' | 'chrome' | 'safari' | 'other';
-  inAppBrowser: boolean;
-}) {
-  const appName = browser === 'zalo'
-    ? 'Zalo'
-    : browser === 'messenger'
-      ? 'Messenger'
-      : browser === 'facebook'
-        ? 'Facebook'
-        : 'trình duyệt tích hợp';
-
-  let instructions = 'Mở cài đặt quyền vị trí của trình duyệt, cho phép trang này truy cập vị trí rồi quay lại thử lại.';
-  if (inAppBrowser) {
-    instructions = `Bạn đang mở liên kết trong ${appName}. Trình duyệt tích hợp có thể hạn chế GPS. Hãy mở menu chia sẻ/tùy chọn và chọn mở bằng Safari (iPhone/iPad) hoặc Chrome (Android), sau đó cấp quyền vị trí cho trang.`;
-  } else if (platform === 'ios' && browser === 'safari') {
-    instructions = 'Trên iPhone/iPad, vào Cài đặt → Quyền riêng tư & Bảo mật → Dịch vụ định vị và bật định vị. Sau đó vào Cài đặt → Ứng dụng → Safari → Vị trí, chọn Hỏi hoặc Cho phép; quay lại trang và thử lại.';
-  } else if (platform === 'android' && browser === 'chrome') {
-    instructions = 'Trên Android, bật Vị trí trong Cài đặt → Vị trí. Sau đó vào Cài đặt → Ứng dụng → Chrome → Quyền → Vị trí và cho phép khi dùng ứng dụng; trong Chrome, kiểm tra Cài đặt trang web → Vị trí.';
-  }
-
-  return (
-    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950">
-      <h3 className="font-semibold">Hướng dẫn khôi phục quyền vị trí</h3>
-      <p className="mt-1">{instructions}</p>
-    </div>
   );
 }
 
@@ -308,6 +127,7 @@ function CheckinFormExperience({
   const outsideRadius =
     requirements.requireLocation &&
     location !== null &&
+    location.gpsReady &&
     !location.isWithinRadius &&
     location.currentDistance !== null;
 
@@ -358,12 +178,14 @@ function CheckinFormExperience({
           form={form}
           disabled={
             (requirements.requireLocation &&
-              (!location?.gpsReady || outsideRadius))
+              (!location?.gpsReady || !location.coords || !location.isWithinRadius))
           }
           label={
             outsideRadius && location
               ? `Ngoài bán kính (${location.currentDistance}m > ${event.radius_meters}m)`
-              : 'Xác nhận có mặt'
+              : requirements.requireLocation && !location?.gpsReady
+                ? 'Đang chờ xác minh vị trí'
+                : 'Xác nhận có mặt'
           }
         />
       </form>

@@ -31,6 +31,7 @@ AttenDo is a Vietnamese attendance web app. Hosts create time-limited sessions w
 - `src/lib/supabase/client.ts` is the browser client; `src/lib/supabase/server.ts` is the cookie-aware server client and exposes `verifyAuth`.
 - `src/proxy.ts` refreshes/checks Supabase auth and protects `/host/*`; login uses `useActionState` and redirects to a validated `/host/` path.
 - Check-in validation is enforced by the Postgres `check_in_to_event` RPC, not only by client UI: active/expiry, required fields, GPS radius, PIN, QR token, and duplicate device checks.
+- The check-in route reads only the event fields needed for the form once in its Server Component and seeds the client store; submission makes one RPC call and does not refetch the event. GPS permission is checked first: granted permission starts a background location lookup, otherwise the attendee sees an explanatory prompt before the browser permission request. Denied permissions show device/browser-specific recovery guidance.
 - Core tables: `events`, `event_pins`, `event_qr_tokens`, `attendance_records`. Base schema is `supabase/schema.sql`; apply timestamped `supabase/migrations/` in order.
 
 ## Zustand Stores

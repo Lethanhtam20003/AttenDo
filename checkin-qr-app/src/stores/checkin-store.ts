@@ -13,6 +13,7 @@ interface CheckinState {
   gpsReady: boolean;
   coords: Coordinates | null;
   gpsError: string | null;
+  isRequestingLocation: boolean;
   isRefiningLocation: boolean;
   isPermissionDenied: boolean;
   fieldValues: Record<string, string>;
@@ -42,6 +43,7 @@ const emptyState = {
   gpsReady: false,
   coords: null,
   gpsError: null,
+  isRequestingLocation: false,
   isRefiningLocation: false,
   isPermissionDenied: false,
   fieldValues: {} as Record<string, string>,
