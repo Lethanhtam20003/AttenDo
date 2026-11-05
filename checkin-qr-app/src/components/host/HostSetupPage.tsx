@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { ArrowRight, GripVertical, Loader2, MapPin, Navigation, Plus, QrCode, ScanFace, ShieldCheck, Trash2 } from 'lucide-react';
 import {
   PIN_REFRESH_DEFAULT_SECONDS,
@@ -10,6 +10,7 @@ import {
 import { useCustomFields } from '@/hooks/host-setup/useCustomFields';
 import { useHostSetupForm } from '@/hooks/host-setup/useHostSetupForm';
 import { useHostSetupLocation } from '@/hooks/host-setup/useHostSetupLocation';
+import { useHostSetupStore } from '@/stores/host-setup-store';
 
 const MapSelector = dynamic(() => import('@/components/host/MapSelector'), {
   ssr: false,
@@ -35,11 +36,20 @@ const moduleDetails: Record<HostSetupModule, { title: string; description: strin
 
 export function HostSetupPage({ module }: { module: HostSetupModule }) {
   const defaultInterval = module === 'qr-pin' ? PIN_REFRESH_DEFAULT_SECONDS : QR_TOKEN_LIFETIME_SECONDS;
-  const [refreshInterval, setRefreshInterval] = useState(String(defaultInterval));
-  const [sessionDurationValue, setSessionDurationValue] = useState('2');
-  const [sessionDurationUnit, setSessionDurationUnit] = useState<'minutes' | 'hours'>('hours');
-  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
-  const [dropIndicator, setDropIndicator] = useState<{ fieldId: string; placeAfter: boolean } | null>(null);
+  const refreshInterval = useHostSetupStore((state) => state.refreshInterval);
+  const setRefreshInterval = useHostSetupStore((state) => state.setRefreshInterval);
+  const sessionDurationValue = useHostSetupStore((state) => state.sessionDurationValue);
+  const setSessionDurationValue = useHostSetupStore((state) => state.setSessionDurationValue);
+  const sessionDurationUnit = useHostSetupStore((state) => state.sessionDurationUnit);
+  const setSessionDurationUnit = useHostSetupStore((state) => state.setSessionDurationUnit);
+  const draggedFieldId = useHostSetupStore((state) => state.draggedFieldId);
+  const setDraggedFieldId = useHostSetupStore((state) => state.setDraggedFieldId);
+  const dropIndicator = useHostSetupStore((state) => state.dropIndicator);
+  const setDropIndicator = useHostSetupStore((state) => state.setDropIndicator);
+  const reset = useHostSetupStore((state) => state.reset);
+  useEffect(() => {
+    reset(String(defaultInterval));
+  }, [defaultInterval, module, reset]);
   const location = useHostSetupLocation();
   const customFields = useCustomFields();
   const settings = {

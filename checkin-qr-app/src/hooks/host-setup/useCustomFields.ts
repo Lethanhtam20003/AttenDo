@@ -1,25 +1,21 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import type { CustomFieldConfig } from '@/types/database';
+import { useHostSetupStore } from '@/stores/host-setup-store';
 
 export interface HostSetupCustomField extends CustomFieldConfig {
   id: string;
   fixed: boolean;
 }
 
-const INITIAL_FIELDS: HostSetupCustomField[] = [
-  { id: '1', key: 'full_name', label: 'Họ và tên', type: 'text', required: true, fixed: true },
-  { id: '2', key: 'phone', label: 'Số điện thoại', type: 'tel', required: true, fixed: false },
-  { id: '3', key: 'don_vi', label: 'Đơn vị công tác', type: 'text', required: false, fixed: false },
-];
-
 export function useCustomFields() {
-  const [fields, setFields] = useState<HostSetupCustomField[]>(INITIAL_FIELDS);
+  const fields = useHostSetupStore((state) => state.fields);
+  const updateFields = useHostSetupStore((state) => state.setFields);
 
   const addField = useCallback(() => {
     const id = Date.now().toString();
-    setFields((currentFields) => [
+    updateFields((currentFields) => [
       ...currentFields,
       {
         id,
@@ -30,14 +26,14 @@ export function useCustomFields() {
         fixed: false,
       },
     ]);
-  }, []);
+  }, [updateFields]);
 
   const removeField = useCallback((id: string) => {
-    setFields((currentFields) => currentFields.filter((field) => field.id !== id));
-  }, []);
+    updateFields((currentFields) => currentFields.filter((field) => field.id !== id));
+  }, [updateFields]);
 
   const reorderField = useCallback((sourceId: string, targetId: string, placeAfter: boolean) => {
-    setFields((currentFields) => {
+    updateFields((currentFields) => {
       const sourceIndex = currentFields.findIndex((field) => field.id === sourceId);
       const targetIndex = currentFields.findIndex((field) => field.id === targetId);
       if (sourceIndex === -1 || targetIndex === -1 || sourceId === targetId) return currentFields;
@@ -48,10 +44,10 @@ export function useCustomFields() {
       reorderedFields.splice(adjustedTargetIndex + (placeAfter ? 1 : 0), 0, movedField);
       return reorderedFields;
     });
-  }, []);
+  }, [updateFields]);
 
   const updateFieldLabel = useCallback((id: string, label: string) => {
-    setFields((currentFields) =>
+    updateFields((currentFields) =>
       currentFields.map((field) => {
         if (field.id !== id) return field;
         const key = field.fixed
@@ -60,19 +56,19 @@ export function useCustomFields() {
         return { ...field, label, key };
       })
     );
-  }, []);
+  }, [updateFields]);
 
   const updateFieldType = useCallback((id: string, type: 'text' | 'tel' | 'number') => {
-    setFields((currentFields) =>
+    updateFields((currentFields) =>
       currentFields.map((field) => (field.id === id ? { ...field, type } : field))
     );
-  }, []);
+  }, [updateFields]);
 
   const updateFieldRequired = useCallback((id: string, required: boolean) => {
-    setFields((currentFields) =>
+    updateFields((currentFields) =>
       currentFields.map((field) => (field.id === id ? { ...field, required } : field))
     );
-  }, []);
+  }, [updateFields]);
 
   return { fields, addField, removeField, reorderField, updateFieldLabel, updateFieldType, updateFieldRequired };
 }

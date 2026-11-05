@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useTransition } from 'react';
+import { useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createEvent } from '@/actions/events';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/constants/checkin';
 import type { CustomFieldConfig } from '@/types/database';
 import type { HostSetupCustomField } from './useCustomFields';
+import { useHostSetupStore } from '@/stores/host-setup-store';
 
 interface Coordinates {
   lat: number;
@@ -31,8 +32,10 @@ export function useHostSetupForm(
   }
 ) {
   const router = useRouter();
-  const [eventTitle, setEventTitle] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const eventTitle = useHostSetupStore((state) => state.eventTitle);
+  const setEventTitle = useHostSetupStore((state) => state.setEventTitle);
+  const errorMsg = useHostSetupStore((state) => state.errorMsg);
+  const setErrorMsg = useHostSetupStore((state) => state.setErrorMsg);
   const [isPending, startTransition] = useTransition();
 
   const handleLaunch = useCallback(() => {
@@ -104,7 +107,7 @@ export function useHostSetupForm(
 
       router.push(`/host/live/${result.data.eventId}`);
     });
-  }, [checkinSettings, coordinates.lat, coordinates.lng, eventTitle, fields, radius, router]);
+  }, [checkinSettings, coordinates.lat, coordinates.lng, eventTitle, fields, radius, router, setErrorMsg]);
 
   return { eventTitle, setEventTitle, errorMsg, isPending, handleLaunch };
 }

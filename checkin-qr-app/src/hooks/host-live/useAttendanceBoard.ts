@@ -1,24 +1,37 @@
 // Chỉ định đây là Client Component trong Next.js (code chạy ở phía trình duyệt, không phải server)
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { getAttendanceList } from '@/actions/checkin';
 import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import type { AttendanceRecord, Event } from '@/types/database';
+import { useHostLiveStore } from '@/stores/host-live-store';
+
+const EMPTY_LOGS: AttendanceRecord[] = [];
 
 // Custom hook quản lý danh sách điểm danh của một sự kiện
 export function useAttendanceBoard(eventId?: string, event?: Event | null) {
-  // State lưu trữ danh sách các bản ghi điểm danh
-  const [logs, setLogs] = useState<AttendanceRecord[]>([]);
-  // State lưu trữ ID của người vừa điểm danh (dùng để tạo hiệu ứng highlight mới, v.v.)
-  const [newAttendeeId, setNewAttendeeId] = useState<string | null>(null);
+  const activeEventId = useHostLiveStore((state) => state.eventId);
+  const storedLogs = useHostLiveStore((state) => state.logs);
+  const storedNewAttendeeId = useHostLiveStore((state) => state.newAttendeeId);
+  const setAttendance = useHostLiveStore((state) => state.setAttendance);
+  const addAttendee = useHostLiveStore((state) => state.addAttendee);
+  const setNewAttendeeId = useHostLiveStore((state) => state.setNewAttendeeId);
+  const logs = activeEventId === eventId ? storedLogs : EMPTY_LOGS;
+  const newAttendeeId = activeEventId === eventId ? storedNewAttendeeId : null;
 
   // Hook useEffect: Chạy mỗi khi eventId thay đổi.
   // Nhiệm vụ: Lấy danh sách điểm danh ban đầu từ server khi vừa vào trang.
   useEffect(() => {
     if (!eventId) return;
-    getAttendanceList(eventId).then(setLogs);
-  }, [eventId]);
+    let active = true;
+    getAttendanceList(eventId).then((records) => {
+      if (active) setAttendance(eventId, records);
+    });
+    return () => {
+      active = false;
+    };
+  }, [eventId, setAttendance]);
 
   // Hook lắng nghe dữ liệu theo thời gian thực (real-time) từ database
   useRealtimeTable<AttendanceRecord & Record<string, unknown>>(
@@ -31,16 +44,12 @@ export function useAttendanceBoard(eventId?: string, event?: Event | null) {
         const newRecord = payload.new as AttendanceRecord;
         
         // Cập nhật lại danh sách điểm danh (logs)
-        setLogs((prev) => {
-          // Tránh bị trùng lặp nếu bản ghi đã tồn tại trong danh sách
-          if (prev.some((r) => r.id === newRecord.id)) return prev;
-          // Thêm người mới vào đầu danh sách
-          return [newRecord, ...prev];
-        });
+        if (!eventId) return;
+        addAttendee(eventId, newRecord);
 
         // Đánh dấu ID người mới điểm danh và tự động xóa đánh dấu sau 3 giây
-        setNewAttendeeId(newRecord.id);
-        setTimeout(() => setNewAttendeeId(null), 3000);
+        setNewAttendeeId(eventId, newRecord.id);
+        setTimeout(() => setNewAttendeeId(eventId, null), 3000);
       }
     }
   );

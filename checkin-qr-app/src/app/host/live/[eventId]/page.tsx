@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import { AlertTriangle, CheckCircle2, Clock3, Download, Loader2, MapPin, Maximize2, QrCode, Share2, ShieldCheck, Users, X } from 'lucide-react';
@@ -10,6 +10,7 @@ import {
   getQrTokenRefreshSeconds,
 } from '@/constants/checkin';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
+import { useHostLiveStore } from '@/stores/host-live-store';
 
 function formatSessionCountdown(seconds: number) {
   const hours = Math.floor(seconds / 3600);
@@ -34,12 +35,18 @@ function HostLiveContent() {
     endError,
   } = useHostLiveSession(eventId);
   const { logs, newAttendeeId, handleExportExcel } = useAttendanceBoard(eventId, event);
-  const [showEndConfirmation, setShowEndConfirmation] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
-  const [isSharingQr, setIsSharingQr] = useState(false);
-  const [shareMessage, setShareMessage] = useState<string | null>(null);
-  const [shareError, setShareError] = useState<string | null>(null);
-  const [copyFallbackUrl, setCopyFallbackUrl] = useState(false);
+  const showEndConfirmation = useHostLiveStore((state) => state.showEndConfirmation);
+  const showQrModal = useHostLiveStore((state) => state.showQrModal);
+  const isSharingQr = useHostLiveStore((state) => state.isSharingQr);
+  const shareMessage = useHostLiveStore((state) => state.shareMessage);
+  const shareError = useHostLiveStore((state) => state.shareError);
+  const copyFallbackUrl = useHostLiveStore((state) => state.copyFallbackUrl);
+  const setShowEndConfirmation = useHostLiveStore((state) => state.setShowEndConfirmation);
+  const setShowQrModal = useHostLiveStore((state) => state.setShowQrModal);
+  const setIsSharingQr = useHostLiveStore((state) => state.setIsSharingQr);
+  const setShareMessage = useHostLiveStore((state) => state.setShareMessage);
+  const setShareError = useHostLiveStore((state) => state.setShareError);
+  const setCopyFallbackUrl = useHostLiveStore((state) => state.setCopyFallbackUrl);
   const pinRefreshSeconds = getPinRefreshSeconds(
     event?.module_settings?.pin_interval_seconds
   );
@@ -47,10 +54,10 @@ function HostLiveContent() {
   const handleShareQr = async () => {
     if (!checkinUrl || isSharingQr) return;
 
-    setIsSharingQr(true);
-    setShareMessage(null);
-    setShareError(null);
-    setCopyFallbackUrl(false);
+    setIsSharingQr(eventId, true);
+    setShareMessage(eventId, null);
+    setShareError(eventId, null);
+    setCopyFallbackUrl(eventId, false);
 
     try {
       const canvas = document.getElementById('checkin-qr-code');
@@ -74,30 +81,30 @@ function HostLiveContent() {
 
       if (navigator.share && navigator.canShare?.({ files: [qrFile] })) {
         await navigator.share({ ...shareData, files: [qrFile] });
-        setShareMessage('Đã mở bảng chia sẻ. Chọn Zalo để gửi ảnh mã QR.');
+        setShareMessage(eventId, 'Đã mở bảng chia sẻ. Chọn Zalo để gửi ảnh mã QR.');
       } else if (navigator.share) {
         await navigator.share(shareData);
-        setShareMessage('Đã mở bảng chia sẻ. Chọn Zalo để gửi liên kết check-in.');
+        setShareMessage(eventId, 'Đã mở bảng chia sẻ. Chọn Zalo để gửi liên kết check-in.');
       } else {
         await navigator.clipboard.writeText(checkinUrl);
-        setShareMessage('Thiết bị chưa hỗ trợ chia sẻ trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
+        setShareMessage(eventId, 'Thiết bị chưa hỗ trợ chia sẻ trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
 
       try {
         await navigator.clipboard.writeText(checkinUrl);
-        setShareMessage('Không thể chia sẻ mã QR trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
+        setShareMessage(eventId, 'Không thể chia sẻ mã QR trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
       } catch {
-        setShareError(
+        setShareError(eventId,
           error instanceof Error
             ? `${error.message} Không thể mở chia sẻ hoặc sao chép liên kết trên thiết bị này.`
             : 'Không thể chia sẻ mã QR hoặc sao chép liên kết trên thiết bị này.'
         );
-        setCopyFallbackUrl(true);
+        setCopyFallbackUrl(eventId, true);
       }
     } finally {
-      setIsSharingQr(false);
+      setIsSharingQr(eventId, false);
     }
   };
 
@@ -149,7 +156,7 @@ function HostLiveContent() {
             ) : event?.status === 'active' ? (
               <button
                 type="button"
-                onClick={() => setShowEndConfirmation(true)}
+                onClick={() => setShowEndConfirmation(eventId, true)}
                 className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 sm:flex-none sm:px-4"
               >
                 Kết thúc điểm danh
@@ -182,7 +189,7 @@ function HostLiveContent() {
               <button
                 type="button"
                 aria-label="Đóng hộp thoại"
-                onClick={() => setShowEndConfirmation(false)}
+                onClick={() => setShowEndConfirmation(eventId, false)}
                 disabled={isEnding}
                 className="ml-auto rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
               >
@@ -199,7 +206,7 @@ function HostLiveContent() {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setShowEndConfirmation(false)}
+                onClick={() => setShowEndConfirmation(eventId, false)}
                 disabled={isEnding}
                 className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
@@ -208,7 +215,7 @@ function HostLiveContent() {
               <button
                 type="button"
                 onClick={async () => {
-                  if (await handleEndEvent()) setShowEndConfirmation(false);
+                  if (await handleEndEvent()) setShowEndConfirmation(eventId, false);
                 }}
                 disabled={isEnding}
                 className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -225,7 +232,7 @@ function HostLiveContent() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
           onMouseDown={(mouseEvent) => {
-            if (mouseEvent.target === mouseEvent.currentTarget) setShowQrModal(false);
+            if (mouseEvent.target === mouseEvent.currentTarget) setShowQrModal(eventId, false);
           }}
         >
           <section
@@ -241,7 +248,7 @@ function HostLiveContent() {
               <button
                 type="button"
                 aria-label="Đóng mã QR phóng to"
-                onClick={() => setShowQrModal(false)}
+                onClick={() => setShowQrModal(eventId, false)}
                 className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
               >
                 <X className="h-5 w-5" />
@@ -306,7 +313,7 @@ function HostLiveContent() {
             <div className="mb-3 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <button
                 type="button"
-                onClick={() => setShowQrModal(true)}
+                onClick={() => setShowQrModal(eventId, true)}
                 disabled={!checkinUrl}
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
