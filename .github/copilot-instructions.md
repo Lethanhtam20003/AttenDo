@@ -6,6 +6,7 @@
 
 ## 2. Stack and Commands
 - App lives in `checkin-qr-app/` and uses Bun, Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS 4, and Supabase (`@supabase/ssr`, `@supabase/supabase-js`).
+- Read `checkin-qr-app/docs/PROJECT_CONTEXT.md` for a concise product, architecture, route, state-store, and database overview. Treat it as orientation; verify the relevant source and migrations before making changes.
 - Run commands from `checkin-qr-app/`: `bun install`, `bun run dev`, `bun run lint`, and `bun run build`.
 - TypeScript alias: `@/*` maps to `src/*`. There is no test script in `package.json`.
 - DO NOT manually import third-party libraries (e.g., axios, moment, lodash, redux) unless explicitly requested by the user. Always use `lucide-react` for icons.
