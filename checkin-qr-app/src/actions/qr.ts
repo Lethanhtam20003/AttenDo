@@ -5,7 +5,7 @@ import { createClient, verifyAuth } from '@/lib/supabase/server';
 import {
   QR_TOKEN_REFRESH_GRACE_SECONDS,
   getQrTokenRefreshSeconds,
-} from '@/constants/checkIn';
+} from '@/constants/check-in';
 import type { ActionResult } from '@/types/database';
 
 export async function issueDynamicQrToken(

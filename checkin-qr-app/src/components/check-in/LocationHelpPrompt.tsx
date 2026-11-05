@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import { Check, Copy, ExternalLink, HelpCircle, X } from 'lucide-react';
-import type { CheckInBrowser, DevicePlatform } from '@/lib/checkIn/browser';
+import type { CheckInBrowser, DevicePlatform } from '@/lib/check-in/browser';
 import { useToolsStore } from '@/stores/tools-store';
 
 function subscribeToLocation(onChange: () => void) {

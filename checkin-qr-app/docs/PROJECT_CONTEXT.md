@@ -21,7 +21,7 @@ AttenDo is a Vietnamese attendance web app. Hosts create time-limited sessions w
 - `/host/gps/setup`, `/host/dynamic-qr/setup`, `/host/qr-pin/setup`: host session setup, shared through `HostSetupPage`.
 - `/host/live/[eventId]`: live QR/PIN, session status, realtime attendees, CSV export.
 - `/host/manage`: list owned sessions and view attendees.
-- `/checkin/[eventId]`: attendee form, optional GPS/PIN/dynamic QR validation.
+- `/check-in/[eventId]`: attendee form, optional GPS/PIN/dynamic QR validation.
 - `/test-qr`, `/test-location`: diagnostic pages.
 
 ## Code Map and Data Flow
@@ -37,7 +37,7 @@ AttenDo is a Vietnamese attendance web app. Hosts create time-limited sessions w
 ## Zustand Stores
 
 - `host-setup-store.ts`: session setup form, custom fields, location and drag/drop state.
-- `checkin-store.ts`: event, attendee form, GPS and check-in result; scoped/reset by event ID.
+- `check-in-store.ts`: event, attendee form, GPS and check-in result; scoped/reset by event ID.
 - `host-live-store.ts`: live session, timers, QR/PIN, attendees/realtime, and related UI state; scoped/reset by event ID.
 - `host-management-store.ts`: session list, selection, search, loading and errors.
 - `tools-store.ts`: QR/GPS diagnostic and location-help UI state.
@@ -55,7 +55,7 @@ Use selectors for individual fields. Do not put server-only or framework-managed
 ## Useful Starting Points
 
 - Session setup: `src/components/host/HostSetupPage.tsx`, `src/actions/events.ts`.
-- Check-in: `src/app/checkin/[eventId]/page.tsx`, `src/hooks/checkin/`, `src/actions/checkin.ts`.
+- Check-in: `src/app/check-in/[eventId]/page.tsx`, `src/hooks/check-in/`, `src/actions/check-in.ts`.
 - Live host view: `src/app/host/live/[eventId]/page.tsx`, `src/hooks/host-live/`.
 - Authentication: `src/actions/auth.ts`, `src/proxy.ts`, `src/lib/supabase/server.ts`.
 - Database rules: `supabase/schema.sql`, `supabase/migrations/`.

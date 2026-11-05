@@ -8,7 +8,7 @@ import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
 import {
   getPinRefreshSeconds,
   getQrTokenRefreshSeconds,
-} from '@/constants/checkIn';
+} from '@/constants/check-in';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
 import { useHostLiveStore } from '@/stores/host-live-store';
 

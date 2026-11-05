@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { getLocationConsentStorageKey } from '@/constants/checkIn';
+import { getLocationConsentStorageKey } from '@/constants/check-in';
 import type { CheckInEvent } from '@/types/database';
-import { useCheckInStore } from '@/stores/checkIn-store';
+import { useCheckInStore } from '@/stores/check-in-store';
 
 // Khởi tạo store từ dữ liệu đã được tải một lần trong Server Component.
 export function useCheckInEvent(initialEvent: CheckInEvent) {

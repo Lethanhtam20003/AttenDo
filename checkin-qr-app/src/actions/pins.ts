@@ -4,7 +4,7 @@ import { createClient, verifyAuth } from '@/lib/supabase/server';
 import {
   PIN_CLEANUP_RETENTION_SECONDS,
   getPinRefreshSeconds,
-} from '@/constants/checkIn';
+} from '@/constants/check-in';
 import type { ActionResult } from '@/types/database';
 
 /**

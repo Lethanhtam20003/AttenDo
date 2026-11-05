@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, type FormEvent } from 'react';
-import { checkIn } from '@/actions/checkIn';
+import { checkIn } from '@/actions/check-in';
 import type { CheckInEvent } from '@/types/database';
-import { useCheckInStore } from '@/stores/checkIn-store';
+import { useCheckInStore } from '@/stores/check-in-store';
 
 interface Coordinates {
   lat: number;
