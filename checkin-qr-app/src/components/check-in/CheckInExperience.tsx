@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import { Lock, MapPin } from 'lucide-react';
 import { getLocationConsentStorageKey } from '@/constants/check-in';
 import { useCheckInForm } from '@/hooks/check-in/useCheckInForm';
@@ -17,6 +17,7 @@ import { useCheckInEvent } from '@/hooks/check-in/useCheckInEvent';
 import type { CheckInRequirements } from '@/lib/check-in/solution';
 import type { CheckInEvent } from '@/types/database';
 import { useCheckInStore } from '@/stores/check-in-store';
+import { detectCheckInEnvironment } from '@/lib/check-in/browser';
 
 function subscribeToBrowser() {
   return () => {};
@@ -50,22 +51,13 @@ function GpsCheckInExperience({
   requirements: CheckInRequirements;
 }) {
   const userAgent = useSyncExternalStore(subscribeToBrowser, getUserAgent, () => '');
-  const location = useCheckInLocation(event, true);
-  const requestLocation = location.requestLocation;
+  const location = useCheckInLocation(event);
   const locationIntroConfirmed = useCheckInStore((state) => state.locationIntroConfirmed);
   const setLocationIntroConfirmed = useCheckInStore((state) => state.setLocationIntroConfirmed);
-
-  useEffect(() => {
-    if (!locationIntroConfirmed) return;
-
-    try {
-      if (localStorage.getItem(getLocationConsentStorageKey(event.id)) === 'true') {
-        requestLocation();
-      }
-    } catch {
-      // Không truy cập được bộ nhớ vẫn không ngăn người dùng tiếp tục điểm danh.
-    }
-  }, [event.id, requestLocation, locationIntroConfirmed]);
+  const environment = detectCheckInEnvironment(
+    userAgent,
+    typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints
+  );
 
   if (!locationIntroConfirmed) {
     return (
@@ -84,8 +76,13 @@ function GpsCheckInExperience({
             Cho phép truy cập vị trí
           </h2>
           <p id="location-consent-description" className="mt-2 text-center text-sm leading-6 text-slate-600">
-            Phiên điểm danh này cần xác minh bạn đang ở trong phạm vi địa điểm tổ chức. Sau khi xác nhận, trình duyệt sẽ hỏi quyền vị trí; bạn có thể nhập thông tin trong lúc hệ thống kiểm tra.
+            Phiên điểm danh này cần xác minh bạn đang ở trong phạm vi địa điểm tổ chức. Khi tiếp tục, trình duyệt có thể hỏi quyền vị trí nếu bạn chưa cấp; hệ thống sẽ lấy vị trí chính xác.
           </p>
+          {environment.inAppBrowser && (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-left text-xs leading-relaxed text-amber-900">
+              Trình duyệt trong ứng dụng có thể chặn GPS. Nếu không lấy được vị trí, hãy mở menu ⋯ và chọn mở liên kết bằng {environment.platform === 'ios' ? 'Safari' : 'Chrome'}.
+            </p>
+          )}
           <button
             type="button"
             onClick={() => {

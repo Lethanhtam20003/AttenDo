@@ -35,6 +35,7 @@ function getAndroidAppName(browser: CheckInBrowser) {
 interface LocationHelpPromptProps {
   platform: DevicePlatform;
   browser: CheckInBrowser;
+  inAppBrowser: boolean;
   gpsIssue: GpsIssue | null;
 }
 
@@ -47,6 +48,7 @@ function getChromeIntentUrl(currentPageUrl: string) {
 export default function LocationHelpPrompt({
   platform,
   browser,
+  inAppBrowser,
   gpsIssue,
 }: LocationHelpPromptProps) {
   const open = useToolsStore((state) => state.locationHelpOpen);
@@ -59,12 +61,13 @@ export default function LocationHelpPrompt({
   const permissionDenied = gpsIssue === 'permission-denied';
   const deviceLocationUnavailable =
     gpsIssue === 'position-unavailable' || gpsIssue === 'timeout';
+  const inAppBrowserBlocked = gpsIssue === 'in-app-browser';
 
   useEffect(() => {
-    setOpen(gpsIssue !== null);
+    setOpen(gpsIssue !== null || inAppBrowser);
     setCopied(false);
     setCopyError(false);
-  }, [gpsIssue, setCopyError, setCopied, setOpen]);
+  }, [gpsIssue, inAppBrowser, setCopyError, setCopied, setOpen]);
 
   const copyLink = async () => {
     setCopyError(false);
@@ -86,7 +89,9 @@ export default function LocationHelpPrompt({
         className="mx-auto mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3 text-xs font-medium text-blue-700 hover:bg-blue-50"
       >
         <HelpCircle className="h-4 w-4" />
-        {permissionDenied
+        {inAppBrowserBlocked || inAppBrowser
+          ? 'Mở check-in bằng trình duyệt'
+          : permissionDenied
           ? 'Cách bật lại quyền vị trí'
           : deviceLocationUnavailable
             ? 'Cách bật Dịch vụ định vị'
@@ -109,14 +114,18 @@ export default function LocationHelpPrompt({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 id="location-help-title" className="text-base font-bold text-slate-900">
-                  {permissionDenied
+                  {inAppBrowserBlocked || inAppBrowser
+                    ? 'Mở check-in bằng trình duyệt Safari/Chrome'
+                    : permissionDenied
                     ? 'Bật lại quyền vị trí'
                     : deviceLocationUnavailable
                       ? 'Bật Dịch vụ định vị của thiết bị'
                       : 'Hướng dẫn quyền vị trí'}
                 </h2>
                 <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                  {permissionDenied
+                  {inAppBrowserBlocked
+                    ? 'Trình duyệt trong ứng dụng có thể chặn yêu cầu GPS. Hãy mở menu ⋯ ở góc trên và chọn Mở bằng Safari hoặc Chrome, sau đó thử lại.'
+                    : permissionDenied
                     ? 'Thiết bị đã từ chối quyền vị trí. Hãy bật lại theo hướng dẫn bên dưới, sau đó quay lại trang và nhấn Thử lại.'
                     : deviceLocationUnavailable
                       ? 'Quyền truy cập trình duyệt đã được cấp nhưng thiết bị chưa trả về tọa độ. Hãy bật Dịch vụ định vị của điện thoại theo hướng dẫn, sau đó quay lại và nhấn Thử lại; không cần cấp lại quyền trình duyệt.'
@@ -154,9 +163,9 @@ export default function LocationHelpPrompt({
                     Trong Chrome, mở menu <strong>⋯ → Cài đặt → Cài đặt nội dung → Vị trí</strong> và cho phép trang web này truy cập vị trí.
                   </li>
                 )}
-                {browser === 'zalo' && (
+                {inAppBrowser && (
                   <li>
-                    Nếu Zalo vẫn không lấy được vị trí, nhấn menu <strong>⋯ → Mở bằng trình duyệt → Safari</strong>, rồi cấp quyền cho Safari.
+                    Trong {getInAppBrowserName(browser)}, nhấn menu <strong>⋯ → Mở bằng trình duyệt → Safari</strong>, rồi cho phép Safari truy cập vị trí.
                   </li>
                 )}
                 <li>Quay lại trang điểm danh rồi nhấn <strong>Thử lại</strong> ở thông báo GPS.</li>
@@ -172,9 +181,9 @@ export default function LocationHelpPrompt({
                     Trong Chrome, mở <strong>⋮ → Cài đặt → Cài đặt trang web → Vị trí</strong> và cho phép trang web này.
                   </li>
                 )}
-                {browser === 'zalo' && (
+                {inAppBrowser && (
                   <li>
-                    Nếu Zalo vẫn không lấy được vị trí, mở menu Zalo và chọn <strong>Mở bằng trình duyệt</strong>, sau đó cho phép Chrome truy cập vị trí.
+                    Trong {getInAppBrowserName(browser)}, mở menu và chọn <strong>Mở bằng trình duyệt</strong>, sau đó cho phép Chrome truy cập vị trí.
                   </li>
                 )}
                 {browser === 'safari' && (
@@ -247,4 +256,11 @@ function getBrowserName(browser: CheckInBrowser) {
   if (browser === 'chrome') return 'Chrome';
   if (browser === 'safari') return 'Safari';
   return 'trình duyệt khác';
+}
+
+function getInAppBrowserName(browser: CheckInBrowser) {
+  if (browser === 'zalo') return 'Zalo';
+  if (browser === 'messenger') return 'Messenger';
+  if (browser === 'facebook') return 'Facebook';
+  return 'trình duyệt này';
 }
