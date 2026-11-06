@@ -239,7 +239,7 @@ function HostLiveContent() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="enlarged-qr-title"
-            className="w-full max-w-lg rounded-3xl bg-white p-5 text-center shadow-2xl sm:p-8"
+            className="flex h-full w-full flex-col bg-white p-3 text-center sm:p-5"
           >
             <div className="flex items-center justify-between gap-4">
               <h2 id="enlarged-qr-title" className="text-lg font-bold text-slate-900">
@@ -254,14 +254,14 @@ function HostLiveContent() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="mt-5 flex w-full justify-center rounded-2xl border border-slate-200 bg-white p-3">
+            <div className="mt-3 flex min-h-0 w-full flex-1 justify-center rounded-2xl border border-slate-200 bg-white p-2">
               <QRCodeCanvas
                 value={checkInUrl}
-                size={360}
+                size={1024}
                 level="M"
                 includeMargin
                 aria-label="Mã QR điểm danh phóng to"
-                className="h-auto w-full max-w-[360px]"
+                className="h-auto w-auto max-h-full max-w-full"
               />
             </div>
             {event.module_settings?.dynamic_qr === true && (

@@ -37,18 +37,25 @@ export const useGeolocation = () => {
           setGeolocation({ locationError: null, isLocating: false });
           resolve(coordinates);
         },
-        (error) => {
-          let errorMessage = 'Đã có lỗi xảy ra khi lấy vị trí.';
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Vui lòng cấp quyền truy cập vị trí để điểm danh.';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Không thể xác định được vị trí hiện tại (mất tín hiệu GPS).';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'Quá thời gian yêu cầu lấy vị trí. Vui lòng thử lại.';
-              break;
+        async (error) => {
+          let errorMessage = 'Vui lòng mở Vị trí (GPS) trên thiết bị của bạn rồi thử lại.';
+          if (error.code === error.PERMISSION_DENIED) {
+            let isGrantedOnWeb = false;
+            if (navigator.permissions?.query) {
+              try {
+                const status = await navigator.permissions.query({ name: 'geolocation' });
+                isGrantedOnWeb = status.state === 'granted';
+              } catch {
+                // Bỏ qua nếu trình duyệt không hỗ trợ Permissions API.
+              }
+            }
+            errorMessage = isGrantedOnWeb
+              ? 'Vui lòng mở Vị trí (GPS) trên thiết bị của bạn rồi thử lại.'
+              : 'Vui lòng mở Vị trí (GPS) trên thiết bị và cho phép trình duyệt truy cập vị trí.';
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            errorMessage = 'Vui lòng mở Vị trí (GPS) trên thiết bị của bạn rồi thử lại.';
+          } else if (error.code === error.TIMEOUT) {
+            errorMessage = 'Quá thời gian chờ tín hiệu. Vui lòng mở Vị trí (GPS) trên thiết bị rồi thử lại.';
           }
           setGeolocation({ locationError: errorMessage, isLocating: false });
           resolve(null);
