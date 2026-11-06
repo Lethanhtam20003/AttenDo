@@ -214,9 +214,25 @@ BEGIN
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.events;
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'attendance_records'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.attendance_records;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'event_pins'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.event_pins;
+  END IF;
 END;
 $$;
-
--- Hoặc chạy lệnh sau (nếu dùng supabase CLI):
--- ALTER PUBLICATION supabase_realtime ADD TABLE event_pins;
--- ALTER PUBLICATION supabase_realtime ADD TABLE attendance_records;

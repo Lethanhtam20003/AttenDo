@@ -82,18 +82,20 @@ export function useHostLiveSession(eventId?: string) {
       setStoredEvent(eventId, data as Event);
 
       if (data.status === 'active' && data.module_settings?.require_pin !== false) {
-        getCurrentPin(eventId).then((res) => {
-          if (res.success) {
-            const pinRefreshSeconds = getPinRefreshSeconds(
-              data.module_settings?.pin_interval_seconds
-            );
-            const remaining = Math.max(
-              1,
-              Math.round((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000)
-            );
-            setStoredPin(eventId, res.data.pin, Math.min(remaining, pinRefreshSeconds));
-          }
-        });
+        getCurrentPin(eventId)
+          .then((res) => {
+            if (res.success) {
+              const pinRefreshSeconds = getPinRefreshSeconds(
+                data.module_settings?.pin_interval_seconds
+              );
+              const remaining = Math.max(
+                1,
+                Math.round((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000)
+              );
+              setStoredPin(eventId, res.data.pin, Math.min(remaining, pinRefreshSeconds));
+            }
+          })
+          .catch(() => undefined);
       }
 
       if (data.status === 'active' && data.module_settings?.dynamic_qr === true) {
@@ -106,7 +108,7 @@ export function useHostLiveSession(eventId?: string) {
         url.searchParams.set('config', serializeCheckInEventConfig(data as Event));
         setStoredCheckInUrl(eventId, url.toString());
       }
-    });
+    }).catch(() => undefined);
   }, [eventId, refreshDynamicQr, setStoredCheckInUrl, setStoredEvent, setStoredPin]);
 
   const qrRefreshSeconds = getQrTokenRefreshSeconds(

@@ -26,9 +26,13 @@ export function useAttendanceBoard(eventId?: string, event?: Event | null) {
   useEffect(() => {
     if (!eventId) return;
     let active = true;
-    getAttendanceList(eventId).then((records) => {
-      if (active) setAttendance(eventId, records);
-    });
+    getAttendanceList(eventId)
+      .then((records) => {
+        if (active) setAttendance(eventId, records);
+      })
+      .catch(() => {
+        if (active) setAttendance(eventId, []);
+      });
     return () => {
       active = false;
       if (newAttendeeTimerRef.current !== null) {
