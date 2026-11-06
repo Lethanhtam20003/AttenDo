@@ -89,6 +89,11 @@ function GpsCheckInExperience({
           <button
             type="button"
             onClick={() => {
+              try {
+                localStorage.setItem(getLocationConsentStorageKey(event.id), 'true');
+              } catch {
+                // Trạng thái trong store vẫn cho phép tiếp tục nếu bộ nhớ bị chặn.
+              }
               setLocationIntroConfirmed(event.id, true);
               location.requestLocation();
             }}

@@ -5,8 +5,8 @@ import { getLocationConsentStorageKey } from '@/constants/check-in';
 import type { CheckInEvent } from '@/types/database';
 import { useCheckInStore } from '@/stores/check-in-store';
 
-const LOCATION_TIMEOUT_MS = 2500;
-const MAX_LOCATION_RETRIES = 3;
+const LOCATION_TIMEOUT_MS = 8000;
+const MAX_LOCATION_RETRIES = 2;
 
 // Tính khoảng cách giữa hai tọa độ GPS theo mét bằng công thức Haversine.
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -29,9 +29,9 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
   const gpsReady = useCheckInStore((state) => state.gpsReady);
   const coords = useCheckInStore((state) => state.coords);
   const gpsError = useCheckInStore((state) => state.gpsError);
+  const gpsIssue = useCheckInStore((state) => state.gpsIssue);
   const isRequestingLocation = useCheckInStore((state) => state.isRequestingLocation);
   const isRefiningLocation = useCheckInStore((state) => state.isRefiningLocation);
-  const isPermissionDenied = useCheckInStore((state) => state.isPermissionDenied);
   const setGpsState = useCheckInStore((state) => state.setGpsState);
 
   const requestLocation = useCallback(() => {
@@ -42,6 +42,7 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       setGpsState(eventId, {
         isRequestingLocation: false,
+        gpsIssue: 'unsupported',
         gpsError: 'Trình duyệt của bạn không hỗ trợ định vị GPS.',
       });
       return;
@@ -49,8 +50,8 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
 
     setGpsState(eventId, {
       gpsError: null,
+      gpsIssue: null,
       isRequestingLocation: true,
-      isPermissionDenied: false,
       gpsReady: false,
       coords: null,
       isRefiningLocation: false,
@@ -67,22 +68,29 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
         coords: { lat: position.coords.latitude, lng: position.coords.longitude },
         gpsReady: true,
         gpsError: null,
+        gpsIssue: null,
         isRequestingLocation: false,
         isRefiningLocation: false,
       });
     };
 
     const reportLocationError = (error: GeolocationPositionError) => {
+      const issue = error.code === error.PERMISSION_DENIED
+        ? 'permission-denied'
+        : error.code === error.TIMEOUT
+          ? 'timeout'
+          : 'position-unavailable';
+
       setGpsState(eventId, {
         gpsReady: false,
         isRequestingLocation: false,
         isRefiningLocation: false,
-        isPermissionDenied: error.code === error.PERMISSION_DENIED,
-        gpsError: error.code === error.PERMISSION_DENIED
-          ? 'Quyền truy cập vị trí đang bị từ chối. Hãy cho phép vị trí trong cài đặt trình duyệt hoặc thiết bị.'
-          : error.code === error.TIMEOUT
-            ? 'Lấy vị trí mất quá nhiều thời gian. Hãy bật Dịch vụ định vị và thử lại.'
-            : 'Không xác định được vị trí. Hãy kiểm tra Dịch vụ định vị và thử lại.',
+        gpsIssue: issue,
+        gpsError: issue === 'permission-denied'
+          ? 'Quyền vị trí của trình duyệt đang bị từ chối. Hãy bật quyền trong cài đặt rồi thử lại.'
+          : issue === 'timeout'
+            ? 'Chưa nhận được vị trí sau vài lần thử. Hãy bật Dịch vụ định vị của thiết bị rồi nhấn thử lại.'
+            : 'Trình duyệt đã có quyền nhưng thiết bị chưa cung cấp vị trí. Hãy bật Dịch vụ định vị rồi nhấn thử lại.',
       });
     };
 
@@ -91,13 +99,17 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
         gpsReady: false,
         isRequestingLocation: false,
         isRefiningLocation: false,
+        gpsIssue: 'request-error',
         gpsError: 'Không thể yêu cầu vị trí từ trình duyệt. Hãy kiểm tra quyền vị trí rồi thử lại.',
       });
     };
 
     let retryCount = 0;
     const retryOrReport = (error: GeolocationPositionError) => {
-      if (error.code === error.PERMISSION_DENIED) {
+      if (
+        error.code === error.PERMISSION_DENIED ||
+        error.code === error.POSITION_UNAVAILABLE
+      ) {
         reportLocationError(error);
         return;
       }
@@ -168,14 +180,17 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
 
     if (event.module_settings?.require_location === false) {
       const timer = setTimeout(() => {
-        setGpsState(event.id, { gpsReady: true, coords: null, gpsError: null });
+        setGpsState(event.id, { gpsReady: true, coords: null, gpsError: null, gpsIssue: null });
       }, 0);
       return () => clearTimeout(timer);
     }
 
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       const timer = setTimeout(() => {
-        setGpsState(event.id, { gpsError: 'Trình duyệt của bạn không hỗ trợ định vị GPS.' });
+        setGpsState(event.id, {
+          gpsError: 'Trình duyệt của bạn không hỗ trợ định vị GPS.',
+          gpsIssue: 'unsupported',
+        });
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -200,9 +215,9 @@ export function useCheckInLocation(event: CheckInEvent | null, pauseAutoRequest 
     gpsReady: currentGpsReady,
     coords: currentCoords,
     gpsError: activeEventId === eventId ? gpsError : null,
+    gpsIssue: activeEventId === eventId ? gpsIssue : null,
     isRequestingLocation: activeEventId === eventId && isRequestingLocation,
     isRefiningLocation: activeEventId === eventId && isRefiningLocation,
-    isPermissionDenied: activeEventId === eventId && isPermissionDenied,
     requestLocation,
     currentDistance: currentDistance === null ? null : Math.ceil(currentDistance),
     isWithinRadius,

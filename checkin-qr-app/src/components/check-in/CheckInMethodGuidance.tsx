@@ -30,12 +30,12 @@ export function CheckInMethodGuidance({
         <>
           <GpsGuidance event={event} location={location} />
           <LocationHelpPrompt
-            key={location.isPermissionDenied ? 'permission-denied' : 'permission-prompt'}
+            key={location.gpsIssue ?? 'no-gps-issue'}
             {...detectCheckInEnvironment(
               userAgent,
               typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints
             )}
-            permissionDenied={location.isPermissionDenied}
+            gpsIssue={location.gpsIssue}
           />
         </>
       )}

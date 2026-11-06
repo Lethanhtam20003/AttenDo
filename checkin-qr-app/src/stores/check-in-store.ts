@@ -6,6 +6,13 @@ interface Coordinates {
   lng: number;
 }
 
+export type GpsIssue =
+  | 'permission-denied'
+  | 'position-unavailable'
+  | 'timeout'
+  | 'unsupported'
+  | 'request-error';
+
 interface CheckInState {
   eventId: string | null;
   event: CheckInEvent | null;
@@ -13,9 +20,9 @@ interface CheckInState {
   gpsReady: boolean;
   coords: Coordinates | null;
   gpsError: string | null;
+  gpsIssue: GpsIssue | null;
   isRequestingLocation: boolean;
   isRefiningLocation: boolean;
-  isPermissionDenied: boolean;
   locationIntroConfirmed: boolean;
   fieldValues: Record<string, string>;
   pinInput: string;
@@ -45,9 +52,9 @@ const emptyState = {
   gpsReady: false,
   coords: null,
   gpsError: null,
+  gpsIssue: null,
   isRequestingLocation: false,
   isRefiningLocation: false,
-  isPermissionDenied: false,
   locationIntroConfirmed: false,
   fieldValues: {} as Record<string, string>,
   pinInput: '',

@@ -5,7 +5,7 @@ import { getLocationConsentStorageKey } from '@/constants/check-in';
 import type { CheckInEvent } from '@/types/database';
 import { useCheckInStore } from '@/stores/check-in-store';
 
-// Khởi tạo store từ dữ liệu đã được tải một lần trong Server Component.
+// Khởi tạo store từ cấu hình check-in đã được nhúng trong liên kết do host tạo.
 export function useCheckInEvent(initialEvent: CheckInEvent) {
   const eventId = initialEvent.id;
   const activeEventId = useCheckInStore((state) => state.eventId);
