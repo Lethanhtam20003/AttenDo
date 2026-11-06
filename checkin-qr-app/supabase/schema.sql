@@ -188,10 +188,19 @@ CREATE POLICY "Owners can read pins for active events"
   );
 REVOKE SELECT ON TABLE event_pins FROM anon;
 
--- Cho phép anon đọc danh sách điểm danh
-CREATE POLICY "Public can read attendance"
-  ON attendance_records FOR SELECT
-  USING (true);
+-- Chỉ cho phép Host sở hữu sự kiện đọc danh sách điểm danh
+DROP POLICY IF EXISTS "Public can read attendance" ON attendance_records;
+DROP POLICY IF EXISTS "Owners can read attendance for their events" ON attendance_records;
+CREATE POLICY "Owners can read attendance for their events"
+  ON attendance_records FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM events
+      WHERE events.id = attendance_records.event_id
+        AND (events.created_by = auth.uid() OR events.created_by IS NULL)
+    )
+  );
+REVOKE SELECT ON TABLE attendance_records FROM anon;
 
 -- ── Bật Supabase Realtime ─────────────────────────────────────
 DO $$

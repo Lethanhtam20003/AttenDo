@@ -14,17 +14,23 @@ import type { ActionResult } from '@/types/database';
 export async function rotatePin(
   eventId: string
 ): Promise<ActionResult<{ pin: string; expiresAt: string }>> {
-  await verifyAuth();
+  const user = await verifyAuth();
   const supabase = await createClient();
 
   const { data: event, error: eventError } = await supabase
     .from('events')
     .select('status, module_settings')
     .eq('id', eventId)
+    .eq('created_by', user.id)
     .maybeSingle();
 
   if (eventError) return { success: false, error: eventError.message };
-  if (!event) return { success: false, error: 'Không tìm thấy phiên điểm danh.' };
+  if (!event) {
+    return {
+      success: false,
+      error: 'Không tìm thấy phiên điểm danh hoặc bạn không có quyền thao tác.',
+    };
+  }
   if (event.status !== 'active') {
     return { success: false, error: 'Phiên điểm danh đã kết thúc.' };
   }
@@ -58,17 +64,23 @@ export async function rotatePin(
 export async function getCurrentPin(
   eventId: string
 ): Promise<ActionResult<{ pin: string; expiresAt: string }>> {
-  await verifyAuth();
+  const user = await verifyAuth();
   const supabase = await createClient();
 
   const { data: event, error: eventError } = await supabase
     .from('events')
     .select('status')
     .eq('id', eventId)
+    .eq('created_by', user.id)
     .maybeSingle();
 
   if (eventError) return { success: false, error: eventError.message };
-  if (!event) return { success: false, error: 'Không tìm thấy phiên điểm danh.' };
+  if (!event) {
+    return {
+      success: false,
+      error: 'Không tìm thấy phiên điểm danh hoặc bạn không có quyền thao tác.',
+    };
+  }
   if (event.status !== 'active') {
     return { success: false, error: 'Phiên điểm danh đã kết thúc.' };
   }

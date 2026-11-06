@@ -1,7 +1,7 @@
 // Chỉ định đây là Client Component trong Next.js (code chạy ở phía trình duyệt, không phải server)
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { getAttendanceList } from '@/actions/check-in';
 import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import type { AttendanceRecord, Event } from '@/types/database';
@@ -17,6 +17,7 @@ export function useAttendanceBoard(eventId?: string, event?: Event | null) {
   const setAttendance = useHostLiveStore((state) => state.setAttendance);
   const addAttendee = useHostLiveStore((state) => state.addAttendee);
   const setNewAttendeeId = useHostLiveStore((state) => state.setNewAttendeeId);
+  const newAttendeeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logs = activeEventId === eventId ? storedLogs : EMPTY_LOGS;
   const newAttendeeId = activeEventId === eventId ? storedNewAttendeeId : null;
 
@@ -30,6 +31,10 @@ export function useAttendanceBoard(eventId?: string, event?: Event | null) {
     });
     return () => {
       active = false;
+      if (newAttendeeTimerRef.current !== null) {
+        clearTimeout(newAttendeeTimerRef.current);
+        newAttendeeTimerRef.current = null;
+      }
     };
   }, [eventId, setAttendance]);
 
@@ -49,7 +54,13 @@ export function useAttendanceBoard(eventId?: string, event?: Event | null) {
 
         // Đánh dấu ID người mới điểm danh và tự động xóa đánh dấu sau 3 giây
         setNewAttendeeId(eventId, newRecord.id);
-        setTimeout(() => setNewAttendeeId(eventId, null), 3000);
+        if (newAttendeeTimerRef.current !== null) {
+          clearTimeout(newAttendeeTimerRef.current);
+        }
+        newAttendeeTimerRef.current = setTimeout(() => {
+          setNewAttendeeId(eventId, null);
+          newAttendeeTimerRef.current = null;
+        }, 3000);
       }
     }
   );
@@ -113,9 +124,12 @@ export function useAttendanceBoard(eventId?: string, event?: Event | null) {
     
     // Xử lý làm sạch tên file, loại bỏ các ký tự đặc biệt
     const cleanTitle = (event?.title || 'diem_danh').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+    const localDate = new Date().toLocaleDateString('sv-SE', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+    });
     
-    // Đặt tên file tự động (ví dụ: diem_danh_TieuDe_2023-10-30.csv)
-    a.download = `diem_danh_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.csv`;
+    // Đặt tên file tự động theo chuẩn múi giờ Việt Nam tránh lệch ngày trước 07:00 sáng
+    a.download = `diem_danh_${cleanTitle}_${localDate}.csv`;
     
     // Kích hoạt việc tải xuống
     a.click();

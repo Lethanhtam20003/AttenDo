@@ -20,7 +20,6 @@ export function useRealtimeTable<T extends Record<string, unknown>>(
   event: ChangeEvent,
   onData: (payload: RealtimePostgresChangesPayload<T>) => void
 ) {
-  const supabase = createClient();
   // Store latest callback in a ref — updated in an effect (not during render)
   const onDataRef = useRef(onData);
   useEffect(() => {
@@ -28,6 +27,11 @@ export function useRealtimeTable<T extends Record<string, unknown>>(
   });
 
   const subscribe = useCallback(() => {
+    if (!filter || filter.endsWith('=eq.undefined')) {
+      return () => undefined;
+    }
+
+    const supabase = createClient();
     const channel = supabase
       .channel(`realtime:${table}:${filter}`)
       .on(
@@ -38,9 +42,9 @@ export function useRealtimeTable<T extends Record<string, unknown>>(
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [table, filter, event, supabase]);
+  }, [table, filter, event]);
 
   useEffect(() => {
     const cleanup = subscribe();

@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, verifyAuth } from '@/lib/supabase/server';
 import type { ActionResult, AttendanceRecord } from '@/types/database';
 
 interface CheckInInput {
@@ -65,9 +65,20 @@ async function hashQrToken(token: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-/** Lấy danh sách điểm danh của sự kiện */
+/** Lấy danh sách điểm danh của sự kiện (chỉ dành cho Host sở hữu phiên) */
 export async function getAttendanceList(eventId: string) {
+  const user = await verifyAuth();
   const supabase = await createClient();
+
+  const { data: event } = await supabase
+    .from('events')
+    .select('id')
+    .eq('id', eventId)
+    .eq('created_by', user.id)
+    .maybeSingle();
+
+  if (!event) return [];
+
   const { data } = await supabase
     .from('attendance_records')
     .select('*')
