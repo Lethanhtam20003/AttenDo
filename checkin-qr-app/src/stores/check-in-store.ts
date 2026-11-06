@@ -4,7 +4,16 @@ import type { CheckInEvent } from '@/types/database';
 interface Coordinates {
   lat: number;
   lng: number;
+  accuracy: number;
 }
+
+export type GpsIssue =
+  | 'permission-denied'
+  | 'position-unavailable'
+  | 'timeout'
+  | 'unsupported'
+  | 'request-error'
+  | 'in-app-browser';
 
 interface CheckInState {
   eventId: string | null;
@@ -13,9 +22,8 @@ interface CheckInState {
   gpsReady: boolean;
   coords: Coordinates | null;
   gpsError: string | null;
+  gpsIssue: GpsIssue | null;
   isRequestingLocation: boolean;
-  isRefiningLocation: boolean;
-  isPermissionDenied: boolean;
   locationIntroConfirmed: boolean;
   fieldValues: Record<string, string>;
   pinInput: string;
@@ -45,9 +53,8 @@ const emptyState = {
   gpsReady: false,
   coords: null,
   gpsError: null,
+  gpsIssue: null,
   isRequestingLocation: false,
-  isRefiningLocation: false,
-  isPermissionDenied: false,
   locationIntroConfirmed: false,
   fieldValues: {} as Record<string, string>,
   pinInput: '',

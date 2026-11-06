@@ -23,6 +23,10 @@ export function CheckInMethodGuidance({
 }) {
   const searchParams = useSearchParams();
   const hasQrToken = Boolean(searchParams.get('qr'));
+  const environment = detectCheckInEnvironment(
+    userAgent,
+    typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints
+  );
 
   return (
     <>
@@ -30,12 +34,9 @@ export function CheckInMethodGuidance({
         <>
           <GpsGuidance event={event} location={location} />
           <LocationHelpPrompt
-            key={location.isPermissionDenied ? 'permission-denied' : 'permission-prompt'}
-            {...detectCheckInEnvironment(
-              userAgent,
-              typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints
-            )}
-            permissionDenied={location.isPermissionDenied}
+            key={location.gpsIssue ?? 'no-gps-issue'}
+            {...environment}
+            gpsIssue={location.gpsIssue}
           />
         </>
       )}
@@ -77,44 +78,53 @@ export function CheckInMethodGuidance({
 function GpsGuidance({ event, location }: { event: CheckInEvent; location: LocationState }) {
   if (location.gpsReady && location.coords) {
     return (
-      <div
-        className={`flex items-start justify-between gap-2 rounded-xl border p-3 text-xs font-medium sm:items-center ${
-          location.isWithinRadius
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-            : 'border-amber-200 bg-amber-50 text-amber-800'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <MapPin className={`h-4 w-4 shrink-0 ${location.isWithinRadius ? 'text-emerald-600' : 'text-amber-600'}`} />
-          <span>
-            {location.currentDistance !== null
-              ? `Cách sự kiện ~${location.currentDistance}m (${
-                  location.isWithinRadius ? 'Hợp lệ' : `Vượt quá ${event.radius_meters}m`
-                })`
-              : `Đã định vị GPS (${location.coords.lat.toFixed(4)}, ${location.coords.lng.toFixed(4)})`}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={location.requestLocation}
-          className="min-h-10 shrink-0 rounded-lg px-2 text-[11px] underline opacity-80 hover:opacity-100"
-          title="Cập nhật lại GPS"
+      <>
+        <div
+          className={`flex items-start justify-between gap-2 rounded-xl border p-3 text-xs font-medium sm:items-center ${
+            location.isWithinRadius
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-amber-200 bg-amber-50 text-amber-800'
+          }`}
         >
-          Làm mới
-        </button>
-      </div>
+          <div className="flex items-center gap-2">
+            <MapPin className={`h-4 w-4 shrink-0 ${location.isWithinRadius ? 'text-emerald-600' : 'text-amber-600'}`} />
+            <span>
+              {location.currentDistance !== null
+                ? `Cách sự kiện ~${location.currentDistance}m (${
+                    location.isWithinRadius ? 'Hợp lệ' : `Vượt quá ${event.radius_meters}m`
+                  })`
+                : `Đã định vị GPS (${location.coords.lat.toFixed(4)}, ${location.coords.lng.toFixed(4)})`}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={location.requestLocation}
+            className="min-h-10 shrink-0 rounded-lg px-2 text-[11px] underline opacity-80 hover:opacity-100"
+            title="Cập nhật lại GPS"
+          >
+            Làm mới
+          </button>
+        </div>
+        {location.accuracy !== null && location.accuracy > 100 && (
+          <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+            Vị trí của bạn hiện đang có sai số quá lớn ({Math.ceil(location.accuracy)}m). Vui lòng sử dụng điện thoại có bật 4G/GPS để điểm danh chính xác hơn.
+          </p>
+        )}
+      </>
     );
   }
 
   return (
     <div className="flex items-start justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-800 sm:items-center">
       <div className="flex items-center gap-2">
-        <Navigation className="h-4 w-4 shrink-0 animate-spin text-amber-600" />
+        <Navigation
+          className={`h-4 w-4 shrink-0 text-amber-600 ${
+            location.isRequestingLocation ? 'animate-spin' : ''
+          }`}
+        />
         <span role="status" aria-live="polite">
           {location.isRequestingLocation
-            ? location.isRefiningLocation
-              ? 'Đang xác minh vị trí chính xác...'
-              : 'Đang chờ quyền và xác minh vị trí...'
+            ? 'Đang lấy vị trí chính xác...'
             : location.gpsError || 'Cần cho phép truy cập vị trí để tiếp tục.'}
         </span>
       </div>
@@ -128,7 +138,7 @@ function GpsGuidance({ event, location }: { event: CheckInEvent; location: Locat
           ? 'Đang xác minh...'
           : location.gpsError
             ? 'Thử lại'
-            : 'Cho phép vị trí'}
+            : 'Lấy vị trí'}
       </button>
     </div>
   );

@@ -5,6 +5,7 @@ import { useRealtimeTable } from '@/hooks/host-live/useRealtimeTable';
 import { rotatePin, getCurrentPin } from '@/actions/pins';
 import { endEvent, getEvent } from '@/actions/events';
 import { issueDynamicQrToken } from '@/actions/qr';
+import { serializeCheckInEventConfig } from '@/lib/check-in/event-config';
 import {
   PIN_LIFETIME_SECONDS,
   QR_TOKEN_LIFETIME_SECONDS,
@@ -50,7 +51,7 @@ export function useHostLiveSession(eventId?: string) {
     beginEvent(eventId);
   }, [beginEvent, eventId]);
 
-  const refreshDynamicQr = useCallback(async (refreshSeconds: number) => {
+  const refreshDynamicQr = useCallback(async (refreshSeconds: number, eventData: Event) => {
     if (!eventId) return;
 
     try {
@@ -61,7 +62,8 @@ export function useHostLiveSession(eventId?: string) {
         return;
       }
 
-      const url = new URL(`/checkIn/${eventId}`, window.location.origin);
+      const url = new URL(`/check-in/${eventId}`, window.location.origin);
+      url.searchParams.set('config', serializeCheckInEventConfig(eventData));
       url.searchParams.set('qr', result.data.token);
       setStoredCheckInUrl(eventId, url.toString());
       setStoredQrTimeLeft(eventId, refreshSeconds);
@@ -96,10 +98,13 @@ export function useHostLiveSession(eventId?: string) {
 
       if (data.status === 'active' && data.module_settings?.dynamic_qr === true) {
         void refreshDynamicQr(
-          getQrTokenRefreshSeconds(data.module_settings?.dynamic_qr_interval_seconds)
+          getQrTokenRefreshSeconds(data.module_settings?.dynamic_qr_interval_seconds),
+          data as Event
         );
       } else if (data.module_settings?.dynamic_qr !== true) {
-        setStoredCheckInUrl(eventId, `${window.location.origin}/checkIn/${eventId}`);
+        const url = new URL(`/check-in/${eventId}`, window.location.origin);
+        url.searchParams.set('config', serializeCheckInEventConfig(data as Event));
+        setStoredCheckInUrl(eventId, url.toString());
       }
     });
   }, [eventId, refreshDynamicQr, setStoredCheckInUrl, setStoredEvent, setStoredPin]);
@@ -200,14 +205,14 @@ export function useHostLiveSession(eventId?: string) {
     ) return;
 
     if (qrTimeLeft <= 1) {
-      const timer = setTimeout(() => void refreshDynamicQr(qrRefreshSeconds), 0);
+      const timer = setTimeout(() => void refreshDynamicQr(qrRefreshSeconds, event), 0);
       return () => clearTimeout(timer);
     }
 
     const timer = setTimeout(() => setStoredQrTimeLeft(eventId, qrTimeLeft - 1), 1000);
 
     return () => clearTimeout(timer);
-  }, [event?.module_settings?.dynamic_qr, event?.status, eventId, qrRefreshSeconds, qrTimeLeft, refreshDynamicQr, setStoredQrTimeLeft]);
+  }, [event, event?.module_settings?.dynamic_qr, event?.status, eventId, qrRefreshSeconds, qrTimeLeft, refreshDynamicQr, setStoredQrTimeLeft]);
 
   useRealtimeTable<Event & Record<string, unknown>>(
     'events',
