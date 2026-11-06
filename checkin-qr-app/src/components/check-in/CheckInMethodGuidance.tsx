@@ -2,11 +2,11 @@
 
 import { MapPin, Navigation, QrCode } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import type { useCheckInLocation } from '@/hooks/checkIn/useCheckInLocation';
-import type { CheckInRequirements } from '@/lib/checkIn/solution';
+import type { useCheckInLocation } from '@/hooks/check-in/useCheckInLocation';
+import type { CheckInRequirements } from '@/lib/check-in/solution';
 import type { CheckInEvent } from '@/types/database';
-import LocationHelpPrompt from '@/components/checkIn/LocationHelpPrompt';
-import { detectCheckInEnvironment } from '@/lib/checkIn/browser';
+import LocationHelpPrompt from '@/components/check-in/LocationHelpPrompt';
+import { detectCheckInEnvironment } from '@/lib/check-in/browser';
 
 type LocationState = ReturnType<typeof useCheckInLocation>;
 

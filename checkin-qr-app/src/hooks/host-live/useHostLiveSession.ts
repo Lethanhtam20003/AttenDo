@@ -10,7 +10,7 @@ import {
   QR_TOKEN_LIFETIME_SECONDS,
   getPinRefreshSeconds,
   getQrTokenRefreshSeconds,
-} from '@/constants/checkIn';
+} from '@/constants/check-in';
 import type { EventPin, Event } from '@/types/database';
 import { useHostLiveStore } from '@/stores/host-live-store';
 

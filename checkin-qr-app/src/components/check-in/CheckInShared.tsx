@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import { CheckCircle2, Loader2, ShieldAlert } from 'lucide-react';
-import type { CheckInRequirements } from '@/lib/checkIn/solution';
+import type { CheckInRequirements } from '@/lib/check-in/solution';
 import type { CustomFieldConfig } from '@/types/database';
-import type { useCheckInForm } from '@/hooks/checkIn/useCheckInForm';
+import type { useCheckInForm } from '@/hooks/check-in/useCheckInForm';
 
 export type CheckInFormState = ReturnType<typeof useCheckInForm>;
 

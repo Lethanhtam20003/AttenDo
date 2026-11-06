@@ -6,7 +6,7 @@ import { ArrowRight, GripVertical, Loader2, MapPin, Navigation, Plus, QrCode, Sc
 import {
   PIN_REFRESH_DEFAULT_SECONDS,
   QR_TOKEN_LIFETIME_SECONDS,
-} from '@/constants/checkIn';
+} from '@/constants/check-in';
 import { useCustomFields } from '@/hooks/host-setup/useCustomFields';
 import { useHostSetupForm } from '@/hooks/host-setup/useHostSetupForm';
 import { useHostSetupLocation } from '@/hooks/host-setup/useHostSetupLocation';

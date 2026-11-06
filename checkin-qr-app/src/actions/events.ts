@@ -6,7 +6,7 @@ import {
   PIN_MIN_REFRESH_SECONDS,
   QR_TOKEN_MAX_REFRESH_SECONDS,
   QR_TOKEN_MIN_REFRESH_SECONDS,
-} from '@/constants/checkIn';
+} from '@/constants/check-in';
 import type {
   ActionResult,
   AttendanceRecord,

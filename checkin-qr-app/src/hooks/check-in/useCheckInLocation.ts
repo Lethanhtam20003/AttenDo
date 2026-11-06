@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { getLocationConsentStorageKey } from '@/constants/checkIn';
+import { getLocationConsentStorageKey } from '@/constants/check-in';
 import type { CheckInEvent } from '@/types/database';
-import { useCheckInStore } from '@/stores/checkIn-store';
+import { useCheckInStore } from '@/stores/check-in-store';
 
 const LOCATION_TIMEOUT_MS = 2500;
 const MAX_LOCATION_RETRIES = 3;

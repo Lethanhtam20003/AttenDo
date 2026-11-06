@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: checkIn-qr-app
+        working-directory: checkin-qr-app
     steps:
       - uses: actions/checkout@v4
         with:

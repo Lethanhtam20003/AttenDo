@@ -1,12 +1,12 @@
 import { Suspense } from 'react';
 import { connection } from 'next/server';
 import { getCheckInEvent } from '@/actions/events';
-import { CheckInExperience } from '@/components/checkIn/CheckInExperience';
+import { CheckInExperience } from '@/components/check-in/CheckInExperience';
 import {
   CheckInLoadingState,
   CheckInUnavailableState,
-} from '@/components/checkIn/CheckInShared';
-import { getCheckInRequirements } from '@/lib/checkIn/solution';
+} from '@/components/check-in/CheckInShared';
+import { getCheckInRequirements } from '@/lib/check-in/solution';
 
 type AttendeeCheckInPageProps = {
   params: Promise<{ eventId: string }>;

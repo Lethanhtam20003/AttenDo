@@ -2,21 +2,21 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import { Lock, MapPin } from 'lucide-react';
-import { getLocationConsentStorageKey } from '@/constants/checkIn';
-import { useCheckInForm } from '@/hooks/checkIn/useCheckInForm';
-import { useCheckInLocation } from '@/hooks/checkIn/useCheckInLocation';
-import { CheckInMethodGuidance } from '@/components/checkIn/CheckInMethodGuidance';
+import { getLocationConsentStorageKey } from '@/constants/check-in';
+import { useCheckInForm } from '@/hooks/check-in/useCheckInForm';
+import { useCheckInLocation } from '@/hooks/check-in/useCheckInLocation';
+import { CheckInMethodGuidance } from '@/components/check-in/CheckInMethodGuidance';
 import {
   AttendeeFields,
   CheckInHeader,
   CheckInLoadingState,
   CheckInSubmitState,
   CheckInSuccessState,
-} from '@/components/checkIn/CheckInShared';
-import { useCheckInEvent } from '@/hooks/checkIn/useCheckInEvent';
-import type { CheckInRequirements } from '@/lib/checkIn/solution';
+} from '@/components/check-in/CheckInShared';
+import { useCheckInEvent } from '@/hooks/check-in/useCheckInEvent';
+import type { CheckInRequirements } from '@/lib/check-in/solution';
 import type { CheckInEvent } from '@/types/database';
-import { useCheckInStore } from '@/stores/checkIn-store';
+import { useCheckInStore } from '@/stores/check-in-store';
 
 function subscribeToBrowser() {
   return () => {};

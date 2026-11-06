@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { AttendanceRecord, Event } from '@/types/database';
-import { PIN_LIFETIME_SECONDS, QR_TOKEN_LIFETIME_SECONDS } from '@/constants/checkIn';
+import { PIN_LIFETIME_SECONDS, QR_TOKEN_LIFETIME_SECONDS } from '@/constants/check-in';
 
 interface HostLiveState {
   eventId: string | null;
