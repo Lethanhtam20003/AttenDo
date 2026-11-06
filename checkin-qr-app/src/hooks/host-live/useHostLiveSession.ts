@@ -61,7 +61,7 @@ export function useHostLiveSession(eventId?: string) {
         return;
       }
 
-      const url = new URL(`/checkIn/${eventId}`, window.location.origin);
+      const url = new URL(`/check-in/${eventId}`, window.location.origin);
       url.searchParams.set('qr', result.data.token);
       setStoredCheckInUrl(eventId, url.toString());
       setStoredQrTimeLeft(eventId, refreshSeconds);
@@ -99,7 +99,7 @@ export function useHostLiveSession(eventId?: string) {
           getQrTokenRefreshSeconds(data.module_settings?.dynamic_qr_interval_seconds)
         );
       } else if (data.module_settings?.dynamic_qr !== true) {
-        setStoredCheckInUrl(eventId, `${window.location.origin}/checkIn/${eventId}`);
+        setStoredCheckInUrl(eventId, `${window.location.origin}/check-in/${eventId}`);
       }
     });
   }, [eventId, refreshDynamicQr, setStoredCheckInUrl, setStoredEvent, setStoredPin]);

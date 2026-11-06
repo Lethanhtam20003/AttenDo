@@ -12,7 +12,7 @@ export default function ConditionalLayoutChrome({
 }: ConditionalLayoutChromeProps) {
   const pathname = usePathname();
 
-  if (pathname.startsWith('/checkIn')) return null;
+  if (pathname.startsWith('/check-in')) return null;
 
   return <>{children}</>;
 }

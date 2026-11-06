@@ -63,7 +63,7 @@ Mở [http://localhost:3000](http://localhost:3000). Đăng nhập bằng tài k
 | `/host/qr-pin/setup` | Tạo phiên xác thực bằng QR và PIN |
 | `/host/dynamic-qr/setup` | Tạo phiên sử dụng QR động |
 | `/host/live/[eventId]` | Màn hình Host của phiên |
-| `/checkIn/[eventId]` | Biểu mẫu điểm danh cho người tham dự |
+| `/check-in/[eventId]` | Biểu mẫu điểm danh cho người tham dự |
 
 Các trang `/host/*` yêu cầu đăng nhập. Tài khoản quản lý chỉ xem và quản lý các phiên do tài khoản đó tạo.
 
