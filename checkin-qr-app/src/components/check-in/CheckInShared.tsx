@@ -63,11 +63,9 @@ export function CheckInUnavailableState({
 export function CheckInSuccessState({
   form,
   requirements,
-  coordinates,
 }: {
   form: CheckInFormState;
   requirements: CheckInRequirements;
-  coordinates: { lat: number; lng: number } | null;
 }) {
   const methods = [
     requirements.requireLocation ? 'GPS' : null,
@@ -83,6 +81,19 @@ export function CheckInSuccessState({
   return (
     <main className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white p-6 text-center shadow-sm">
+        <div className="mb-4 border-b border-slate-100 pb-4">
+          <Image
+            src="/logo/trung-tam-cung-ung-dich-vu-cong-xa-xuan-son.png"
+            alt="Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn"
+            width={44}
+            height={44}
+            className="mx-auto mb-2 h-11 w-11 rounded-full object-contain"
+          />
+          <p className="text-[11px] font-semibold text-blue-800">
+            Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn
+          </p>
+        </div>
+
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">
           <CheckCircle2 className="h-7 w-7" />
         </div>
@@ -95,30 +106,14 @@ export function CheckInSuccessState({
           Thông tin và thời gian điểm danh đã được ghi nhận sau khi xác minh {methodLabel}.
         </p>
 
-        <div className="mt-5 space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-left font-mono text-xs text-slate-600">
-          <div className="flex justify-between gap-3">
-            <span className="text-slate-400">Trạng thái:</span>
-            <span className="text-right font-semibold text-emerald-600">Đã xác minh {methodLabel}</span>
-          </div>
-          {requirements.requireLocation && form.distanceResult !== null && (
+        {requirements.requireLocation && form.distanceResult !== null && (
+          <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-3 text-left font-mono text-xs text-slate-600">
             <div className="flex justify-between gap-3">
               <span className="text-slate-400">Khoảng cách:</span>
               <span className="text-slate-800">{form.distanceResult}m từ hội trường</span>
             </div>
-          )}
-          {requirements.requireLocation && coordinates && (
-            <div className="flex justify-between gap-3">
-              <span className="text-slate-400">Tọa độ:</span>
-              <span className="text-slate-800">
-                {coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}
-              </span>
-            </div>
-          )}
-          <div className="flex justify-between gap-3">
-            <span className="text-slate-400">Thiết bị:</span>
-            <span className="text-slate-800">Đã khóa gửi trùng</span>
           </div>
-        </div>
+        )}
       </div>
     </main>
   );

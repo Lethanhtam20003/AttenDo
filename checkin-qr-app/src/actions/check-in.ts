@@ -9,6 +9,7 @@ interface CheckInInput {
   customData: Record<string, string>;
   userLat: number | null;
   userLng: number | null;
+  userAccuracy?: number | null;
   pinInput: string;
   deviceId: string;
   qrToken: string;
@@ -18,7 +19,7 @@ export async function checkIn(
   input: CheckInInput
 ): Promise<ActionResult<Pick<AttendanceRecord, 'id' | 'checked_in_at' | 'distance_meters'>>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('check_in_to_event', {
+  const baseRpcArgs = {
     p_event_id: input.eventId,
     p_full_name: input.fullName.trim(),
     p_custom_data: input.customData,
@@ -29,7 +30,22 @@ export async function checkIn(
     p_qr_token_hash: input.qrToken
       ? await hashQrToken(input.qrToken)
       : null,
+  };
+
+  let { data, error } = await supabase.rpc('check_in_to_event', {
+    ...baseRpcArgs,
+    p_user_accuracy: input.userAccuracy ?? null,
   });
+
+  // Tương thích ngược nếu DB chưa chạy migration bổ sung tham số p_user_accuracy.
+  if (
+    error &&
+    (error.code === 'PGRST202' || error.message.includes('p_user_accuracy'))
+  ) {
+    const fallbackResult = await supabase.rpc('check_in_to_event', baseRpcArgs);
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error) {
     return { success: false, error: error.message };

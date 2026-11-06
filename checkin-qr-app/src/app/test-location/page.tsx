@@ -41,15 +41,26 @@ export default function TestLocationPage() {
         });
         setIsLoading(false);
       },
-      (err) => {
-        // Thất bại: Xử lý các mã lỗi
-        let errorMessage = 'Không thể lấy vị trí.';
+      async (err) => {
+        // Thất bại: Phân biệt trường hợp đã cấp quyền cho trang web nhưng chưa bật GPS trên điện thoại
+        let errorMessage = 'Vui lòng mở Vị trí (GPS) trên điện thoại của bạn rồi thử lại.';
         if (err.code === err.PERMISSION_DENIED) {
-          errorMessage = 'Bạn đã từ chối cấp quyền vị trí. Vui lòng mở khóa trong cài đặt trình duyệt.';
+          let isGrantedOnWeb = false;
+          if (navigator.permissions?.query) {
+            try {
+              const status = await navigator.permissions.query({ name: 'geolocation' });
+              isGrantedOnWeb = status.state === 'granted';
+            } catch {
+              // Bỏ qua nếu trình duyệt không hỗ trợ Permissions API.
+            }
+          }
+          errorMessage = isGrantedOnWeb
+            ? 'Vui lòng mở Vị trí (GPS) trên điện thoại của bạn rồi thử lại.'
+            : 'Vui lòng mở Vị trí (GPS) trên điện thoại và cho phép trình duyệt truy cập vị trí.';
         } else if (err.code === err.POSITION_UNAVAILABLE) {
-          errorMessage = 'Không có tín hiệu GPS hiện tại.';
+          errorMessage = 'Vui lòng mở Vị trí (GPS) trên điện thoại của bạn rồi thử lại.';
         } else if (err.code === err.TIMEOUT) {
-          errorMessage = 'Hết thời gian chờ kết nối GPS. Hãy thử lại.';
+          errorMessage = 'Hết thời gian chờ kết nối. Vui lòng mở Vị trí (GPS) trên điện thoại rồi thử lại.';
         }
         setError(errorMessage);
         setIsLoading(false);

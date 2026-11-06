@@ -33,7 +33,3 @@ export function getQrTokenRefreshSeconds(value: unknown): number {
 // Các giá trị khoảng cách tính bằng mét.
 export const DEFAULT_CHECKIN_RADIUS_METERS = 100;
 export const EARTH_RADIUS_METERS = 6_371_000;
-
-export function getLocationConsentStorageKey(eventId: string): string {
-  return `attendo_location_consent_${eventId}`;
-}
