@@ -34,6 +34,9 @@ interface CheckInState {
   submitError: string | null;
   isSuccess: boolean;
   checkedInName: string;
+  submittedData: Record<string, string>;
+  isEditing: boolean;
+  updateMessage: string | null;
   distanceResult: number | null;
   locationStatus: CheckInLocationStatus;
   locationErrorCode: CheckInLocationErrorCode;
@@ -57,7 +60,14 @@ interface CheckInState {
   setPinInput: (eventId: string, value: string) => void;
   setSubmitting: (eventId: string, value: boolean) => void;
   setSubmitError: (eventId: string, value: string | null) => void;
-  setSuccess: (eventId: string, name: string, distance: number | null) => void;
+  setSuccess: (
+    eventId: string,
+    name: string,
+    distance: number | null,
+    submittedData?: Record<string, string>
+  ) => void;
+  setIsEditing: (eventId: string, value: boolean) => void;
+  setUpdateMessage: (eventId: string, value: string | null) => void;
   setLocationRequesting: (eventId: string) => void;
   setLocationSample: (eventId: string, payload: CheckInLocationSamplePayload) => void;
   setLocationError: (
@@ -79,6 +89,9 @@ const emptyState = {
   submitError: null,
   isSuccess: false,
   checkedInName: '',
+  submittedData: {} as Record<string, string>,
+  isEditing: false,
+  updateMessage: null as string | null,
   distanceResult: null,
   locationStatus: 'idle' as CheckInLocationStatus,
   locationErrorCode: null as CheckInLocationErrorCode,
@@ -120,8 +133,22 @@ export const useCheckInStore = create<CheckInState>((set) => ({
   setSubmitError: (eventId, submitError) => set((state) => (
     state.eventId === eventId ? { submitError } : {}
   )),
-  setSuccess: (eventId, checkedInName, distanceResult) => set((state) => (
-    state.eventId === eventId ? { checkedInName, distanceResult, isSuccess: true } : {}
+  setSuccess: (eventId, checkedInName, distanceResult, submittedData) => set((state) => (
+    state.eventId === eventId
+      ? {
+          checkedInName,
+          distanceResult: distanceResult ?? state.distanceResult,
+          submittedData: submittedData ?? state.submittedData,
+          isSuccess: true,
+          isEditing: false,
+        }
+      : {}
+  )),
+  setIsEditing: (eventId, isEditing) => set((state) => (
+    state.eventId === eventId ? { isEditing, submitError: null } : {}
+  )),
+  setUpdateMessage: (eventId, updateMessage) => set((state) => (
+    state.eventId === eventId ? { updateMessage } : {}
   )),
   setLocationRequesting: (eventId) => set((state) => (
     state.eventId === eventId

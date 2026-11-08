@@ -1,10 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
   AlertTriangle,
   ArrowLeft,
+  CalendarClock,
   CheckCircle2,
   Clock3,
   Download,
@@ -33,6 +35,22 @@ function formatSessionCountdown(seconds: number) {
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = seconds % 60;
   return [hours, minutes, remainingSeconds].map((value) => String(value).padStart(2, '0')).join(':');
+}
+
+function formatEventDateTime(isoString: string) {
+  const date = new Date(isoString);
+  const parts = new Intl.DateTimeFormat('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour12: false,
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).formatToParts(date);
+
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${lookup.hour ?? '00'}:${lookup.minute ?? '00'} · ${lookup.day ?? '01'}/${lookup.month ?? '01'}/${lookup.year ?? ''}`;
 }
 
 export function HostLiveContent({
@@ -190,45 +208,60 @@ export function HostLiveContent({
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header Glassmorphism */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 px-3 py-3 backdrop-blur-md sm:px-6 sm:py-3.5">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-              Q
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 px-3 py-3 backdrop-blur-md sm:px-6 sm:py-3.5">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-start gap-3.5 sm:items-center">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-1 shadow-xs">
+              <Image
+                src="/logo/trung-tam-cung-ung-dich-vu-cong-xa-xuan-son.png"
+                alt="Logo Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn"
+                width={40}
+                height={40}
+                className="h-full w-full object-contain"
+              />
             </div>
-            <div>
-              <h1 className="break-words text-sm font-bold tracking-tight text-slate-900">
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-brand-blue">
+                Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn
+              </p>
+              <h1 className="mt-0.5 break-words text-base font-bold tracking-tight text-brand-navy sm:text-lg">
                 {event?.title || 'Đang kết nối sự kiện...'}
               </h1>
-              <span className="block truncate text-xs text-slate-400">Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn · Phiên #{eventId}</span>
-              {event?.starts_at && (
-                <span className="mt-1 block text-xs text-slate-500">
-                  Bắt đầu điểm danh:{' '}
-                  {new Intl.DateTimeFormat('vi-VN', {
-                    dateStyle: 'short',
-                    timeStyle: 'short',
-                    timeZone: 'Asia/Ho_Chi_Minh',
-                  }).format(new Date(event.starts_at))}
-                </span>
-              )}
-              {event?.expires_at && (
-                <span className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-                  <Clock3 className="h-3 w-3 shrink-0" />
-                  {event.status === 'active' && sessionTimeLeft !== null
-                    ? `Còn ${formatSessionCountdown(sessionTimeLeft)} · `
-                    : ''}
-                  {event.status === 'active' ? 'Tự kết thúc lúc ' : 'Thời hạn phiên: '}
-                  {new Date(event.expires_at).toLocaleString('vi-VN')}
-                </span>
+              {(event?.starts_at || event?.expires_at) && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                  {event?.starts_at && (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-slate-50 px-2.5 py-1 font-medium text-slate-700">
+                      <CalendarClock className="h-3.5 w-3.5 shrink-0 text-brand-blue" />
+                      <span>Bắt đầu:</span>
+                      <strong className="font-semibold text-slate-900">
+                        {formatEventDateTime(event.starts_at)}
+                      </strong>
+                    </span>
+                  )}
+                  {event?.expires_at && (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-slate-50 px-2.5 py-1 font-medium text-slate-700">
+                      <Clock3 className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                      <span>Kết thúc:</span>
+                      <strong className="font-semibold text-slate-900">
+                        {formatEventDateTime(event.expires_at)}
+                      </strong>
+                    </span>
+                  )}
+                  {event?.status === 'active' &&
+                    (startTimeLeft === null || startTimeLeft <= 0) &&
+                    sessionTimeLeft !== null && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-brand-green/25 bg-brand-green/10 px-2.5 py-1 font-semibold text-brand-green">
+                        <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
+                        Đang điểm danh · Còn{' '}
+                        <span className="font-mono font-bold">
+                          {formatSessionCountdown(sessionTimeLeft)}
+                        </span>
+                      </span>
+                    )}
+                </div>
               )}
             </div>
           </div>
-
-          {startTimeLeft !== null && startTimeLeft > 0 && (
-            <p className="text-sm font-semibold text-blue-700">
-              Điểm danh bắt đầu sau {formatSessionCountdown(startTimeLeft)}
-            </p>
-          )}
 
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {presenterToken ? (
@@ -392,6 +425,36 @@ export function HostLiveContent({
               </p>
             )}
           </section>
+        </div>
+      )}
+
+      {/* Banner đếm ngược nổi bật khi phiên chưa đến giờ bắt đầu */}
+      {event?.status === 'active' && startTimeLeft !== null && startTimeLeft > 0 && (
+        <div className="mx-auto w-full max-w-7xl px-3 pt-3 sm:px-6 sm:pt-5">
+          <div className="flex flex-col items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-brand-navy via-brand-blue to-brand-navy px-5 py-4 text-white shadow-md sm:flex-row sm:px-6">
+            <div className="flex items-center gap-3.5 text-center sm:text-left">
+              <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-brand-gold ring-1 ring-white/25 sm:flex">
+                <Clock3 className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-gold/20 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-brand-gold ring-1 ring-brand-gold/40">
+                  Sắp mở điểm danh
+                </span>
+                <p className="mt-1 text-sm font-medium text-blue-50 sm:text-base">
+                  Người tham dự có thể quét mã QR trước và gửi biểu mẫu ngay khi đến giờ mở phiên.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex w-full shrink-0 flex-col items-center justify-center rounded-xl bg-slate-950/35 px-5 py-2.5 ring-1 ring-white/20 sm:w-auto sm:items-end">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-blue-100">
+                Điểm danh bắt đầu sau
+              </span>
+              <span className="mt-0.5 font-mono text-2xl font-black tracking-widest text-brand-gold sm:text-3xl">
+                {formatSessionCountdown(startTimeLeft)}
+              </span>
+            </div>
+          </div>
         </div>
       )}
 

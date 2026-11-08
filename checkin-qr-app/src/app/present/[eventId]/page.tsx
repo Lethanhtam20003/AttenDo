@@ -5,12 +5,15 @@ import { Loader2, ShieldAlert } from 'lucide-react';
 import { verifyPresenterAccess } from '@/actions/presenter';
 import { HostLiveContent } from '@/components/host/HostLiveContent';
 
+export const instant = false;
+
 type PresenterScreenProps = {
   params: Promise<{ eventId: string }>;
   searchParams: Promise<{ code?: string | string[] }>;
 };
 
 async function PresenterRoute({ params, searchParams }: PresenterScreenProps) {
+  await connection();
   const [{ eventId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const rawCode = resolvedSearchParams.code;
   const code = Array.isArray(rawCode) ? rawCode[0] : rawCode;
@@ -71,9 +74,7 @@ async function PresenterRoute({ params, searchParams }: PresenterScreenProps) {
   return <HostLiveContent eventId={eventId} presenterToken={code} />;
 }
 
-export default async function PresenterScreen(props: PresenterScreenProps) {
-  await connection();
-
+export default function PresenterScreen(props: PresenterScreenProps) {
   return (
     <Suspense
       fallback={

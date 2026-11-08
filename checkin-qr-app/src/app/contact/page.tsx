@@ -16,7 +16,7 @@ const contactDetails = [
   {
     icon: Phone,
     label: 'Điện thoại',
-    value: '0123 456 789',
+    value: '0000 000 000',
     href: 'tel:+84123456789',
   },
   {

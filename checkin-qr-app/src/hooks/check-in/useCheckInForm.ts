@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, type FormEvent } from 'react';
-import { checkIn } from '@/actions/check-in';
+import {
+  checkIn,
+  getMyAttendanceRecord,
+  updateAttendanceInfo,
+} from '@/actions/check-in';
 import type { CheckInEvent } from '@/types/database';
 import {
   useCheckInStore,
@@ -43,6 +47,9 @@ export function useCheckInForm({
   const storedSubmitError = useCheckInStore((state) => state.submitError);
   const storedIsSuccess = useCheckInStore((state) => state.isSuccess);
   const storedCheckedInName = useCheckInStore((state) => state.checkedInName);
+  const storedSubmittedData = useCheckInStore((state) => state.submittedData);
+  const storedIsEditing = useCheckInStore((state) => state.isEditing);
+  const storedUpdateMessage = useCheckInStore((state) => state.updateMessage);
   const storedDistanceResult = useCheckInStore((state) => state.distanceResult);
   const storedUserLat = useCheckInStore((state) => state.userLat);
   const storedUserLng = useCheckInStore((state) => state.userLng);
@@ -53,6 +60,8 @@ export function useCheckInForm({
   const setStoredSubmitting = useCheckInStore((state) => state.setSubmitting);
   const setStoredSubmitError = useCheckInStore((state) => state.setSubmitError);
   const setStoredSuccess = useCheckInStore((state) => state.setSuccess);
+  const setStoredIsEditing = useCheckInStore((state) => state.setIsEditing);
+  const setStoredUpdateMessage = useCheckInStore((state) => state.setUpdateMessage);
   const isCurrentEvent = activeEventId === eventId;
   const fieldValues = isCurrentEvent ? storedFieldValues : EMPTY_FIELD_VALUES;
   const pinInput = isCurrentEvent ? storedPinInput : '';
@@ -60,6 +69,9 @@ export function useCheckInForm({
   const submitError = isCurrentEvent ? storedSubmitError : null;
   const isSuccess = isCurrentEvent && storedIsSuccess;
   const checkedInName = isCurrentEvent ? storedCheckedInName : '';
+  const submittedData = isCurrentEvent ? storedSubmittedData : EMPTY_FIELD_VALUES;
+  const isEditing = isCurrentEvent && storedIsEditing;
+  const updateMessage = isCurrentEvent ? storedUpdateMessage : null;
   const distanceResult = isCurrentEvent ? storedDistanceResult : null;
   const userLat = isCurrentEvent ? storedUserLat : null;
   const userLng = isCurrentEvent ? storedUserLng : null;
@@ -76,14 +88,83 @@ export function useCheckInForm({
 
   useEffect(() => {
     if (!eventId || typeof window === 'undefined') return;
+    let active = true;
+
     // Khôi phục màn hình thành công nếu thiết bị đã điểm danh phiên này trước đó.
     if (localStorage.getItem(`checkedin_${eventId}`)) {
       const savedName = localStorage.getItem(`checkedin_name_${eventId}`) ?? '';
+      let savedData: Record<string, string> = {};
+      try {
+        const rawData = localStorage.getItem(`checkedin_data_${eventId}`);
+        if (rawData) {
+          savedData = JSON.parse(rawData) as Record<string, string>;
+        }
+      } catch {
+        savedData = {};
+      }
+      if (savedName && !savedData.full_name) {
+        savedData = { full_name: savedName, ...savedData };
+      }
+
       Promise.resolve().then(() => {
-        setStoredSuccess(eventId, savedName, null);
+        if (!active) return;
+        setStoredFieldValues(eventId, savedData);
+        setStoredSuccess(eventId, savedName, null, savedData);
       });
     }
-  }, [eventId, setStoredSuccess]);
+
+    // Đồng bộ bản ghi thực tế từ máy chủ theo device_id (nếu đã có)
+    const deviceId = getDeviceId();
+    if (deviceId) {
+      getMyAttendanceRecord(eventId, deviceId)
+        .then((res) => {
+          if (!active || !res.success || !res.data) return;
+          const serverData: Record<string, string> = {
+            ...(res.data.custom_data ?? {}),
+            full_name: res.data.full_name,
+          };
+          localStorage.setItem(`checkedin_${eventId}`, 'true');
+          localStorage.setItem(`checkedin_name_${eventId}`, res.data.full_name);
+          localStorage.setItem(`checkedin_data_${eventId}`, JSON.stringify(serverData));
+          setStoredFieldValues(eventId, serverData);
+          setStoredSuccess(
+            eventId,
+            res.data.full_name,
+            res.data.distance_meters,
+            serverData
+          );
+        })
+        .catch(() => undefined);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [eventId, setStoredFieldValues, setStoredSuccess]);
+
+  const handleStartEditing = useCallback(() => {
+    if (!eventId) return;
+    const initialEditValues: Record<string, string> = {
+      ...submittedData,
+      ...(checkedInName && !submittedData.full_name ? { full_name: checkedInName } : {}),
+    };
+    setStoredFieldValues(eventId, initialEditValues);
+    setStoredUpdateMessage(eventId, null);
+    setStoredIsEditing(eventId, true);
+  }, [
+    checkedInName,
+    eventId,
+    setStoredFieldValues,
+    setStoredIsEditing,
+    setStoredUpdateMessage,
+    submittedData,
+  ]);
+
+  const handleCancelEditing = useCallback(() => {
+    if (!eventId) return;
+    setStoredFieldValues(eventId, submittedData);
+    setStoredIsEditing(eventId, false);
+  }, [eventId, setStoredFieldValues, setStoredIsEditing, submittedData]);
 
   const handleSubmit = useCallback(async (formEvent: FormEvent<HTMLFormElement>) => {
     formEvent.preventDefault();
@@ -95,6 +176,52 @@ export function useCheckInForm({
     setStoredSubmitError(eventId, null);
 
     try {
+      const attendeeName = (
+        fieldValues['full_name'] ??
+        event?.custom_fields
+          .map((field) => fieldValues[field.key])
+          .find((value) => value?.trim()) ??
+        ''
+      ).trim();
+
+      const normalizedCustomData: Record<string, string> = {
+        ...fieldValues,
+        full_name: attendeeName,
+      };
+
+      // Trường hợp người tham gia đang chỉnh sửa lại thông tin đã điểm danh
+      if (isEditing) {
+        const updateResult = await updateAttendanceInfo({
+          eventId,
+          deviceId: getDeviceId(),
+          fullName: attendeeName,
+          customData: normalizedCustomData,
+        });
+
+        if (!updateResult.success) {
+          setStoredSubmitError(eventId, updateResult.error);
+          return;
+        }
+
+        localStorage.setItem(`checkedin_${eventId}`, 'true');
+        localStorage.setItem(`checkedin_name_${eventId}`, attendeeName);
+        localStorage.setItem(
+          `checkedin_data_${eventId}`,
+          JSON.stringify(normalizedCustomData)
+        );
+        setStoredUpdateMessage(
+          eventId,
+          'Đã cập nhật thông tin điểm danh thành công!'
+        );
+        setStoredSuccess(
+          eventId,
+          attendeeName,
+          updateResult.data.distance_meters,
+          normalizedCustomData
+        );
+        return;
+      }
+
       let resolvedLat = userLat;
       let resolvedLng = userLng;
       let resolvedAccuracy = userAccuracy;
@@ -130,17 +257,10 @@ export function useCheckInForm({
         }
       }
 
-      const attendeeName = (
-        fieldValues['full_name'] ??
-        event?.custom_fields
-          .map((field) => fieldValues[field.key])
-          .find((value) => value?.trim()) ??
-        ''
-      ).trim();
       const result = await checkIn({
         eventId,
         fullName: attendeeName,
-        customData: { ...fieldValues },
+        customData: normalizedCustomData,
         userLat: requireLocation ? resolvedLat : null,
         userLng: requireLocation ? resolvedLng : null,
         userAccuracy: requireLocation ? resolvedAccuracy : null,
@@ -157,7 +277,17 @@ export function useCheckInForm({
       // Lưu dấu trên thiết bị để tránh điểm danh lặp lại cùng một phiên.
       localStorage.setItem(`checkedin_${eventId}`, 'true');
       localStorage.setItem(`checkedin_name_${eventId}`, attendeeName);
-      setStoredSuccess(eventId, attendeeName, result.data.distance_meters);
+      localStorage.setItem(
+        `checkedin_data_${eventId}`,
+        JSON.stringify(normalizedCustomData)
+      );
+      setStoredUpdateMessage(eventId, null);
+      setStoredSuccess(
+        eventId,
+        attendeeName,
+        result.data.distance_meters,
+        normalizedCustomData
+      );
     } catch (error) {
       setStoredSubmitError(eventId,
         error instanceof Error ? error.message : 'Có lỗi khi gửi điểm danh. Vui lòng thử lại.'
@@ -169,6 +299,7 @@ export function useCheckInForm({
     event,
     eventId,
     fieldValues,
+    isEditing,
     isWithinRadius,
     pinInput,
     requireLocation,
@@ -176,6 +307,7 @@ export function useCheckInForm({
     setStoredSubmitError,
     setStoredSubmitting,
     setStoredSuccess,
+    setStoredUpdateMessage,
     userAccuracy,
     userLat,
     userLng,
@@ -190,7 +322,12 @@ export function useCheckInForm({
     submitError,
     isSuccess,
     checkedInName,
+    submittedData,
+    isEditing,
+    updateMessage,
     distanceResult,
     handleSubmit,
+    handleStartEditing,
+    handleCancelEditing,
   };
 }

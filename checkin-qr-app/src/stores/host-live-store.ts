@@ -36,6 +36,7 @@ interface HostLiveState {
   setEndError: (eventId: string, error: string | null) => void;
   setAttendance: (eventId: string, records: AttendanceRecord[]) => void;
   addAttendee: (eventId: string, record: AttendanceRecord) => void;
+  updateAttendee: (eventId: string, record: AttendanceRecord) => void;
   setNewAttendeeId: (eventId: string, id: string | null) => void;
   setShowEndConfirmation: (eventId: string, value: boolean) => void;
   setShowQrModal: (eventId: string, value: boolean) => void;
@@ -109,6 +110,12 @@ export const useHostLiveStore = create<HostLiveState>((set) => ({
   addAttendee: (eventId, record) => set((state) => {
     if (state.eventId !== eventId || state.logs.some((item) => item.id === record.id)) return {};
     return { logs: [record, ...state.logs] };
+  }),
+  updateAttendee: (eventId, record) => set((state) => {
+    if (state.eventId !== eventId) return {};
+    return {
+      logs: state.logs.map((item) => (item.id === record.id ? record : item)),
+    };
   }),
   setNewAttendeeId: (eventId, newAttendeeId) => set((state) => (
     state.eventId === eventId ? { newAttendeeId } : {}
