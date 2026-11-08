@@ -83,7 +83,7 @@ function CheckInFormExperience({
       : 'Xác nhận có mặt';
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-slate-50 px-4 py-4 sm:py-6">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-slate-50 px-4 py-4 sm:py-6">
       <CheckInHeader title={event.title} startsAt={event.starts_at} />
 
       <form
@@ -135,6 +135,6 @@ function CheckInFormExperience({
         <Lock className="h-3 w-3" />
         Bảo mật chống gửi trùng bằng Device ID
       </div>
-    </main>
+    </div>
   );
 }

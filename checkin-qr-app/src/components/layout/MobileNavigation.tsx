@@ -59,7 +59,7 @@ export function MobileNavigation({ isAuthenticated }: MobileNavigationProps) {
           id="mobile-navigation"
           className="absolute right-0 top-full z-50 mt-2 flex w-56 flex-col gap-1 rounded-2xl border border-slate-200 bg-white p-2 text-sm font-medium text-slate-700 shadow-xl"
         >
-          <Link href="/#services" onClick={handleNavigation} className="rounded-xl px-3 py-3 hover:bg-slate-50">Dịch vụ</Link>
+          {/* <Link href="/#services" onClick={handleNavigation} className="rounded-xl px-3 py-3 hover:bg-slate-50">Dịch vụ</Link> */}
           <Link href="/#solutions" onClick={handleNavigation} className="rounded-xl px-3 py-3 hover:bg-slate-50">Giải pháp</Link>
           <Link href="/#about" onClick={handleNavigation} className="rounded-xl px-3 py-3 hover:bg-slate-50">Giới thiệu</Link>
           <Link href="/contact" onClick={handleNavigation} className="rounded-xl px-3 py-3 hover:bg-slate-50">Liên hệ</Link>

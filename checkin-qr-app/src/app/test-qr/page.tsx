@@ -47,7 +47,7 @@ export default function TestQrPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-900">
+    <div className="flex flex-1 items-center justify-center bg-slate-50 px-4 py-10 text-slate-900">
       <section className="w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
         <div className="grid md:grid-cols-[1.1fr_0.9fr]">
           <div className="p-6 sm:p-10">
@@ -129,6 +129,6 @@ export default function TestQrPage() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

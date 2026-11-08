@@ -74,7 +74,7 @@ export default function TestLocationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="flex flex-1 flex-col items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm">
         
         <div className="flex flex-col items-center text-center mb-8">

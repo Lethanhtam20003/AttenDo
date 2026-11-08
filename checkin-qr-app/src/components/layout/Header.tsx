@@ -29,7 +29,7 @@ export default async function Header() {
         </Link>
 
         <nav className="hidden shrink-0 items-center gap-5 text-sm font-medium text-slate-600 sm:flex">
-          <Link href="/#services" className="transition-colors hover:text-blue-600">Dịch vụ</Link>
+          {/* <Link href="/#services" className="transition-colors hover:text-blue-600">Dịch vụ</Link> */}
           <Link href="/#solutions" className="transition-colors hover:text-blue-600">Giải pháp</Link>
           <Link href="/#about" className="transition-colors hover:text-blue-600">Giới thiệu</Link>
           <Link href="/contact" className="transition-colors hover:text-blue-600">Liên hệ</Link>

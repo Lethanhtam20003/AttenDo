@@ -166,6 +166,11 @@ export function useHostLiveSession(eventId?: string) {
     }
   }, [event, eventId, isEnding, setStoredEndError, setStoredEvent, setStoredIsEnding]);
 
+  const handleEndEventRef = useRef(handleEndEvent);
+  useEffect(() => {
+    handleEndEventRef.current = handleEndEvent;
+  });
+
   useEffect(() => {
     expirationEndRequested.current = false;
   }, [eventId]);
@@ -187,7 +192,7 @@ export function useHostLiveSession(eventId?: string) {
   }, [event?.starts_at, eventId, setStartTimeLeft]);
 
   useEffect(() => {
-    if (!eventId || !event || event.status !== 'active' || !event.expires_at) {
+    if (!eventId || event?.status !== 'active' || !event?.expires_at) {
       return;
     }
 
@@ -201,14 +206,14 @@ export function useHostLiveSession(eventId?: string) {
 
       if (remaining === 0 && !expirationEndRequested.current) {
         expirationEndRequested.current = true;
-        void handleEndEvent();
+        void handleEndEventRef.current();
       }
     };
 
     updateTimeLeft();
     const timer = window.setInterval(updateTimeLeft, 1000);
     return () => window.clearInterval(timer);
-  }, [event, eventId, handleEndEvent, setStoredSessionTimeLeft]);
+  }, [event?.expires_at, event?.status, eventId, setStoredSessionTimeLeft]);
 
   useEffect(() => {
     if (!eventId || event?.status !== 'active' || event.module_settings?.require_pin === false) return;

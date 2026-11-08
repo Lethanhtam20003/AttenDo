@@ -35,7 +35,7 @@ const contactDetails = [
 
 export default function ContactPage() {
   return (
-    <main className="min-h-[calc(100vh-9rem)] bg-slate-50">
+    <div className="flex-1 bg-slate-50">
       <section
         aria-label="Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn"
         className="h-[280px] bg-[url('/contact-background.png')] bg-cover bg-top sm:h-[380px] lg:h-[460px] lg:bg-[position:center_25%]"
@@ -92,6 +92,6 @@ export default function ContactPage() {
           </p>
         </aside>
       </section>
-    </main>
+    </div>
   );
 }

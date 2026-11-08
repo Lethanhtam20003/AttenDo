@@ -71,7 +71,7 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
   const details = moduleDetails[module];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6">
+    <div className="flex-1 bg-slate-50 px-4 py-10 sm:px-6">
       <div className="mx-auto mb-8 max-w-4xl">
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-medium text-blue-700">
@@ -518,6 +518,6 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
           {form.isPending ? 'Đang khởi tạo...' : 'Bắt Đầu Điểm Danh'}
         </button>
       </div>
-    </main>
+    </div>
   );
 }
