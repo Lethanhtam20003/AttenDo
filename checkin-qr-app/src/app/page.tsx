@@ -115,7 +115,7 @@ export default function HomePage() {
                 priority
                 className="mx-auto h-36 w-36 rounded-full object-contain sm:h-48 sm:w-48"
               />
-                <div className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-brand-green/10 px-3 py-2.5 text-sm font-semibold text-brand-green">
+                <div className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-brand-green-light/30 bg-brand-green-light/10 px-3 py-2.5 text-sm font-semibold text-brand-green-light">
                   <BadgeCheck className="h-4 w-4 shrink-0" />
                   Đang phát triển dịch vụ số
                 </div>

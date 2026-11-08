@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <main className="flex flex-1 flex-col">{children}</main>
           <Suspense fallback={null}>
-            <ConditionalLayoutChrome>
+            <ConditionalLayoutChrome hideOnLive>
               <Footer />
             </ConditionalLayoutChrome>
           </Suspense>

@@ -12,7 +12,6 @@ import {
   MapPin,
   Maximize2,
   QrCode,
-  Share2,
   ShieldCheck,
   Users,
   X,
@@ -64,7 +63,7 @@ export function HostLiveContent({ eventId }: { eventId: string }) {
     event?.module_settings?.pin_interval_seconds
   );
 
-  const handleShareQr = async () => {
+  const handleDownloadQr = async () => {
     if (!checkInUrl || isSharingQr) return;
 
     setIsSharingQr(eventId, true);
@@ -75,47 +74,70 @@ export function HostLiveContent({ eventId }: { eventId: string }) {
     try {
       const canvas = document.getElementById('checkIn-qr-code');
       if (!(canvas instanceof HTMLCanvasElement)) {
-        throw new Error('Chưa có mã QR để chia sẻ. Vui lòng đợi mã QR tải xong.');
+        throw new Error('Chưa có mã QR để tải. Vui lòng đợi mã QR hiển thị xong.');
       }
 
-      const image = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
+      // Xuất ảnh QR độ phân giải cao kèm viền trắng rõ nét để dễ in ấn hoặc gửi qua Zalo
+      const exportSize = 800;
+      const padding = 48;
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = exportSize;
+      exportCanvas.height = exportSize;
+      const context = exportCanvas.getContext('2d');
+
+      if (!context) {
+        throw new Error('Không thể khởi tạo bộ vẽ ảnh mã QR.');
+      }
+
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, exportSize, exportSize);
+      context.imageSmoothingEnabled = false;
+      context.drawImage(
+        canvas,
+        padding,
+        padding,
+        exportSize - padding * 2,
+        exportSize - padding * 2
+      );
+
+      const imageBlob = await new Promise<Blob>((resolve, reject) => {
+        exportCanvas.toBlob((blob) => {
           if (blob) resolve(blob);
-          else reject(new Error('Không thể tạo ảnh mã QR để chia sẻ.'));
+          else reject(new Error('Không thể tạo tệp ảnh mã QR để tải xuống.'));
         }, 'image/png');
       });
 
-      const qrFile = new File([image], 'ma-diem-danh.png', { type: 'image/png' });
-      const shareData: ShareData = {
-        title: `Mã QR điểm danh - ${event?.title ?? 'Phiên điểm danh'}`,
-        text: `Quét mã QR để điểm danh${event?.title ? `: ${event.title}` : ''}.`,
-        url: checkInUrl,
-      };
+      const normalizedTitle = (event?.title ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
 
-      if (navigator.share && navigator.canShare?.({ files: [qrFile] })) {
-        await navigator.share({ ...shareData, files: [qrFile] });
-        setShareMessage(eventId, 'Đã mở bảng chia sẻ. Chọn Zalo để gửi ảnh mã QR.');
-      } else if (navigator.share) {
-        await navigator.share(shareData);
-        setShareMessage(eventId, 'Đã mở bảng chia sẻ. Chọn Zalo để gửi liên kết check-in.');
-      } else {
-        await navigator.clipboard.writeText(checkInUrl);
-        setShareMessage(eventId, 'Thiết bị chưa hỗ trợ chia sẻ trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
-      }
+      const fileName = normalizedTitle
+        ? `ma-qr-${normalizedTitle}.png`
+        : `ma-qr-diem-danh-${eventId.slice(0, 8)}.png`;
+
+      const downloadUrl = URL.createObjectURL(imageBlob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+
+      setShareMessage(eventId, 'Đã tải ảnh mã QR về thiết bị.');
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
-
-      try {
-        await navigator.clipboard.writeText(checkInUrl);
-        setShareMessage(eventId, 'Không thể chia sẻ mã QR trực tiếp. Đã sao chép liên kết check-in để bạn gửi qua Zalo.');
-      } catch {
-        setShareError(eventId,
-          error instanceof Error
-            ? `${error.message} Không thể mở chia sẻ hoặc sao chép liên kết trên thiết bị này.`
-            : 'Không thể chia sẻ mã QR hoặc sao chép liên kết trên thiết bị này.'
-        );
-        setCopyFallbackUrl(eventId, true);
-      }
+      setShareError(
+        eventId,
+        error instanceof Error
+          ? error.message
+          : 'Không thể tải mã QR trên thiết bị này.'
+      );
+      setCopyFallbackUrl(eventId, true);
     } finally {
       setIsSharingQr(eventId, false);
     }
@@ -354,12 +376,12 @@ export function HostLiveContent({ eventId }: { eventId: string }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => void handleShareQr()}
+                    onClick={() => void handleDownloadQr()}
                     disabled={!checkInUrl || isSharingQr}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-blue disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isSharingQr ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-                    {isSharingQr ? 'Đang mở chia sẻ...' : 'Chia sẻ QR / Zalo'}
+                    {isSharingQr ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    {isSharingQr ? 'Đang tải mã QR...' : 'Tải mã QR'}
                   </button>
                 </div>
                 {shareMessage && (
