@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { CheckCircle2, Loader2, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Loader2, PencilLine, ShieldAlert } from 'lucide-react';
 import type { CheckInRequirements } from '@/lib/check-in/solution';
 import type { CustomFieldConfig } from '@/types/database';
 import type { useCheckInForm } from '@/hooks/check-in/useCheckInForm';
@@ -85,9 +85,11 @@ export function CheckInUnavailableState({
 export function CheckInSuccessState({
   form,
   requirements,
+  fields,
 }: {
   form: CheckInFormState;
   requirements: CheckInRequirements;
+  fields: CustomFieldConfig[];
 }) {
   const methods = [
     requirements.requireLocation ? 'GPS' : null,
@@ -99,6 +101,17 @@ export function CheckInSuccessState({
     requirements.requirePin ? 'PIN' : null,
   ].filter((method): method is string => method !== null);
   const methodLabel = methods.join(' và ');
+
+  const summaryItems = fields.map((field) => {
+    const rawValue =
+      form.submittedData[field.key] ??
+      (field.key === 'full_name' ? form.checkedInName : '');
+    return {
+      key: field.key,
+      label: field.label,
+      value: rawValue?.trim() || '—',
+    };
+  });
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
@@ -128,14 +141,59 @@ export function CheckInSuccessState({
           Thông tin và thời gian điểm danh đã được ghi nhận sau khi xác minh {methodLabel}.
         </p>
 
+        {form.updateMessage && (
+          <p
+            role="status"
+            className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800"
+          >
+            {form.updateMessage}
+          </p>
+        )}
+
+        {/* Bảng đối chiếu thông tin đã gửi để người tham gia dễ phát hiện nếu nhập sai */}
+        {summaryItems.length > 0 && (
+          <div className="mt-5 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 text-left">
+            <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Thông tin đã ghi nhận
+            </p>
+            <dl className="divide-y divide-slate-200/60 text-xs">
+              {summaryItems.map((item) => (
+                <div
+                  key={item.key}
+                  className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                >
+                  <dt className="shrink-0 font-medium text-slate-500">{item.label}:</dt>
+                  <dd className="break-words text-right font-semibold text-slate-900">
+                    {item.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+
         {requirements.requireLocation && form.distanceResult !== null && (
-          <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-3 text-left font-mono text-xs text-slate-600">
+          <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-left font-mono text-xs text-slate-600">
             <div className="flex justify-between gap-3">
               <span className="text-slate-400">Khoảng cách:</span>
               <span className="text-slate-800">{form.distanceResult}m từ hội trường</span>
             </div>
           </div>
         )}
+
+        <div className="mt-5 border-t border-slate-100 pt-4">
+          <p className="mb-2.5 text-[11px] text-slate-500">
+            Phát hiện nhập sai thông tin? Bạn có thể sửa lại khi phiên vẫn đang mở:
+          </p>
+          <button
+            type="button"
+            onClick={form.handleStartEditing}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-brand-blue/30 bg-brand-blue/5 px-4 py-2.5 text-xs font-semibold text-brand-navy transition hover:bg-brand-blue/10"
+          >
+            <PencilLine className="h-4 w-4 text-brand-blue" />
+            Chỉnh sửa thông tin đã điểm danh
+          </button>
+        </div>
       </div>
     </div>
   );

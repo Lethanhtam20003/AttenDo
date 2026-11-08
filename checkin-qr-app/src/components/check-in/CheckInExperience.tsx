@@ -66,19 +66,23 @@ function CheckInFormExperience({
     requestLocation: location.handleRequestLocation,
   });
 
-  if (form.isSuccess) {
+  if (form.isSuccess && !form.isEditing) {
     return (
       <CheckInSuccessState
         form={form}
         requirements={requirements}
+        fields={event.custom_fields}
       />
     );
   }
 
   const isLocationBusy =
-    requirements.requireLocation && location.locationStatus === 'requesting';
-  const submitLabel =
-    requirements.requireLocation && !location.isWithinRadius
+    !form.isEditing &&
+    requirements.requireLocation &&
+    location.locationStatus === 'requesting';
+  const submitLabel = form.isEditing
+    ? 'Lưu thông tin chỉnh sửa'
+    : requirements.requireLocation && !location.isWithinRadius
       ? 'Bật vị trí & Xác nhận có mặt'
       : 'Xác nhận có mặt';
 
@@ -90,10 +94,23 @@ function CheckInFormExperience({
         onSubmit={form.handleSubmit}
         className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
       >
-        <CheckInMethodGuidance requirements={requirements} />
+        {form.isEditing ? (
+          <div className="rounded-xl border border-brand-blue/25 bg-brand-blue/5 p-3 text-left">
+            <p className="text-xs font-bold text-brand-navy">
+              Chỉnh sửa thông tin đã điểm danh
+            </p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600">
+              Cập nhật lại thông tin bị sai và nhấn lưu. Bạn không cần nhập lại mã PIN hay xác thực lại vị trí GPS.
+            </p>
+          </div>
+        ) : (
+          <>
+            <CheckInMethodGuidance requirements={requirements} />
 
-        {requirements.requireLocation && (
-          <CheckInLocationGate location={location} />
+            {requirements.requireLocation && (
+              <CheckInLocationGate location={location} />
+            )}
+          </>
         )}
 
         <AttendeeFields
@@ -102,7 +119,7 @@ function CheckInFormExperience({
           onChange={form.setFieldValues}
         />
 
-        {requirements.requirePin && (
+        {!form.isEditing && requirements.requirePin && (
           <div className="pt-2">
             <label htmlFor="checkIn-pin" className="mb-1 block text-center text-xs font-semibold text-slate-700">
               Mã PIN trên màn hình trình chiếu <span className="text-rose-500">*</span>
@@ -129,6 +146,17 @@ function CheckInFormExperience({
           disabled={isLocationBusy}
           label={submitLabel}
         />
+
+        {form.isEditing && (
+          <button
+            type="button"
+            onClick={form.handleCancelEditing}
+            disabled={form.isSubmitting}
+            className="flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            Hủy, quay lại màn hình xác nhận
+          </button>
+        )}
       </form>
 
       <div className="flex items-center justify-center gap-1.5 py-3 text-center text-[11px] text-slate-400">

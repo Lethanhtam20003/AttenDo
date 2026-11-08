@@ -23,6 +23,7 @@ export function useAttendanceBoard(
   const storedNewAttendeeId = useHostLiveStore((state) => state.newAttendeeId);
   const setAttendance = useHostLiveStore((state) => state.setAttendance);
   const addAttendee = useHostLiveStore((state) => state.addAttendee);
+  const updateAttendee = useHostLiveStore((state) => state.updateAttendee);
   const setNewAttendeeId = useHostLiveStore((state) => state.setNewAttendeeId);
   const newAttendeeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestTopIdRef = useRef<string | null>(null);
@@ -100,6 +101,29 @@ export function useAttendanceBoard(
 
         // Đánh dấu ID người mới điểm danh và tự động xóa đánh dấu sau 3 giây
         setNewAttendeeId(eventId, newRecord.id);
+        if (newAttendeeTimerRef.current !== null) {
+          clearTimeout(newAttendeeTimerRef.current);
+        }
+        newAttendeeTimerRef.current = setTimeout(() => {
+          setNewAttendeeId(eventId, null);
+          newAttendeeTimerRef.current = null;
+        }, 3000);
+      }
+    }
+  );
+
+  // Lắng nghe khi người tham gia cập nhật lại thông tin bị nhập sai (UPDATE)
+  useRealtimeTable<AttendanceRecord & Record<string, unknown>>(
+    'attendance_records',
+    `event_id=eq.${eventId}`,
+    'UPDATE',
+    (payload) => {
+      if (payload.new && 'id' in payload.new) {
+        const updatedRecord = payload.new as AttendanceRecord;
+        if (!eventId) return;
+        updateAttendee(eventId, updatedRecord);
+
+        setNewAttendeeId(eventId, updatedRecord.id);
         if (newAttendeeTimerRef.current !== null) {
           clearTimeout(newAttendeeTimerRef.current);
         }

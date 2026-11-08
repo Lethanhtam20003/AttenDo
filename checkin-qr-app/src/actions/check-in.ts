@@ -59,6 +59,81 @@ export async function checkIn(
   return { success: true, data: record };
 }
 
+export interface MyAttendanceSummary {
+  id: string;
+  full_name: string;
+  custom_data: Record<string, string>;
+  distance_meters: number | null;
+  checked_in_at: string;
+}
+
+/** Lấy lại thông tin đã điểm danh của chính thiết bị hiện tại */
+export async function getMyAttendanceRecord(
+  eventId: string,
+  deviceId: string
+): Promise<ActionResult<MyAttendanceSummary | null>> {
+  if (!eventId || !deviceId) {
+    return { success: true, data: null };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('get_my_attendance_record', {
+    p_event_id: eventId,
+    p_device_id: deviceId,
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  const record = (Array.isArray(data) ? data[0] : data) as MyAttendanceSummary | undefined;
+  return { success: true, data: record ?? null };
+}
+
+interface UpdateAttendanceInfoInput {
+  eventId: string;
+  deviceId: string;
+  fullName: string;
+  customData: Record<string, string>;
+}
+
+/** Cập nhật lại thông tin điểm danh từ chính thiết bị đã điểm danh khi phiên còn mở */
+export async function updateAttendanceInfo(
+  input: UpdateAttendanceInfoInput
+): Promise<ActionResult<MyAttendanceSummary>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('update_my_attendance_info', {
+    p_event_id: input.eventId,
+    p_device_id: input.deviceId,
+    p_full_name: input.fullName.trim(),
+    p_custom_data: input.customData,
+  });
+
+  if (error) {
+    if (
+      error.code === 'PGRST202' ||
+      error.message.includes('update_my_attendance_info')
+    ) {
+      return {
+        success: false,
+        error:
+          'Cơ sở dữ liệu chưa cập nhật hàm chỉnh sửa điểm danh (202611080004_update_attendance_info.sql).',
+      };
+    }
+    return { success: false, error: error.message };
+  }
+
+  const record = (Array.isArray(data) ? data[0] : data) as MyAttendanceSummary | undefined;
+  if (!record) {
+    return {
+      success: false,
+      error: 'Không thể cập nhật thông tin điểm danh. Vui lòng thử lại.',
+    };
+  }
+
+  return { success: true, data: record };
+}
+
 async function hashQrToken(token: string): Promise<string> {
   const bytes = new TextEncoder().encode(token);
   const digest = await crypto.subtle.digest('SHA-256', bytes);

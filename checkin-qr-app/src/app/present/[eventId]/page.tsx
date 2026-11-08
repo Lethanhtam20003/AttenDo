@@ -1,8 +1,11 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { verifyPresenterAccess } from '@/actions/presenter';
 import { HostLiveContent } from '@/components/host/HostLiveContent';
+
+export const instant = false;
 
 type PresenterScreenProps = {
   params: Promise<{ eventId: string }>;
@@ -10,6 +13,7 @@ type PresenterScreenProps = {
 };
 
 async function PresenterRoute({ params, searchParams }: PresenterScreenProps) {
+  await connection();
   const [{ eventId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const rawCode = resolvedSearchParams.code;
   const code = Array.isArray(rawCode) ? rawCode[0] : rawCode;
