@@ -1,28 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand Colors trích xuất từ Logo Trung tâm Cung ứng DVC xã Xuân Sơn */
+  --brand-navy: #0b3b82;        /* Vòng cung & icon hành chính */
+  --brand-blue: #1e6fd9;        /* Tòa nhà & dòng suối */
+  --brand-sky: #3898ec;         /* Điểm nhấn xanh sáng */
+  --brand-gold: #f6c414;        /* Chữ "XÃ XUÂN SƠN" & ngôi sao */
+  --brand-orange: #f28b0c;      /* Dải lụa cam-vàng */
+  --brand-green: #156d26;       /* Núi đồi & bàn tay trái */
+  --brand-green-light: #65b728; /* Cánh đồng xanh non */
+  --brand-red: #e61e1e;         /* Cờ đỏ & bàn tay phải */
+
+  /* Surfaces & Text */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --bg-canvas: #f8fafc;
+  --bg-surface: #ffffff;
+  --border-subtle: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-sky: var(--brand-sky);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-light: var(--brand-green-light);
+  --color-brand-red: var(--brand-red);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
   text-rendering: optimizeLegibility;
 }
 

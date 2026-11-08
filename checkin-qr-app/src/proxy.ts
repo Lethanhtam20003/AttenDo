@@ -16,6 +16,23 @@ function isIgnorableAuthError(error: { name?: string; status?: number; message?:
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith('sb-'));
+
+  if (!hasAuthCookie) {
+    if (request.nextUrl.pathname === '/auth') {
+      return supabaseResponse;
+    }
+
+    const loginUrl = new URL('/auth', request.url);
+    loginUrl.searchParams.set(
+      'next',
+      `${request.nextUrl.pathname}${request.nextUrl.search}`
+    );
+    return NextResponse.redirect(loginUrl);
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

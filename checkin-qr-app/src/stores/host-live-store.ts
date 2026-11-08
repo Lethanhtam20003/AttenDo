@@ -22,6 +22,8 @@ interface HostLiveState {
   shareMessage: string | null;
   shareError: string | null;
   copyFallbackUrl: boolean;
+  isCopyingPresenterLink: boolean;
+  presenterLinkMessage: string | null;
   beginEvent: (eventId?: string) => void;
   setEvent: (eventId: string, event: Event | null) => void;
   setPin: (eventId: string, pin: string, timeLeft?: number) => void;
@@ -41,6 +43,8 @@ interface HostLiveState {
   setShareMessage: (eventId: string, value: string | null) => void;
   setShareError: (eventId: string, value: string | null) => void;
   setCopyFallbackUrl: (eventId: string, value: boolean) => void;
+  setIsCopyingPresenterLink: (eventId: string, value: boolean) => void;
+  setPresenterLinkMessage: (eventId: string, value: string | null) => void;
 }
 
 const emptyState = {
@@ -62,6 +66,8 @@ const emptyState = {
   shareMessage: null,
   shareError: null,
   copyFallbackUrl: false,
+  isCopyingPresenterLink: false,
+  presenterLinkMessage: null,
 };
 
 export const useHostLiveStore = create<HostLiveState>((set) => ({
@@ -124,5 +130,11 @@ export const useHostLiveStore = create<HostLiveState>((set) => ({
   )),
   setCopyFallbackUrl: (eventId, copyFallbackUrl) => set((state) => (
     state.eventId === eventId ? { copyFallbackUrl } : {}
+  )),
+  setIsCopyingPresenterLink: (eventId, isCopyingPresenterLink) => set((state) => (
+    state.eventId === eventId ? { isCopyingPresenterLink } : {}
+  )),
+  setPresenterLinkMessage: (eventId, presenterLinkMessage) => set((state) => (
+    state.eventId === eventId ? { presenterLinkMessage } : {}
   )),
 }));

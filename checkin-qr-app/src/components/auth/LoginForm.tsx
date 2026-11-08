@@ -22,12 +22,13 @@ export const LoginForm = () => {
       <form action={formAction} className="space-y-4">
         {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label htmlFor="login-email" className="block text-xs font-semibold text-slate-700 mb-1.5">
             Email
           </label>
           <div className="relative">
             <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id="login-email"
               type="email"
               name="email"
               autoComplete="email"
@@ -41,13 +42,14 @@ export const LoginForm = () => {
 
         <div>
           <div className="mb-1.5">
-            <label className="block text-xs font-semibold text-slate-700">
+            <label htmlFor="login-password" className="block text-xs font-semibold text-slate-700">
               Mật khẩu
             </label>
           </div>
           <div className="relative">
             <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id="login-password"
               type="password"
               name="password"
               autoComplete="current-password"

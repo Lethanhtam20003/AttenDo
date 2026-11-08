@@ -35,10 +35,10 @@ export function CheckInHeader({ title, startsAt }: { title: string; startsAt: st
 
 export function CheckInLoadingState({ message = 'Đang tải thông tin phiên điểm danh...' }: { message?: string }) {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-slate-50 p-4">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-slate-50 p-4">
       <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       <p className="text-xs font-medium text-slate-500">{message}</p>
-    </main>
+    </div>
   );
 }
 
@@ -52,7 +52,7 @@ export function CheckInUnavailableState({
   startsAt?: string;
 }) {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
       <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center">
         <ShieldAlert className="mx-auto mb-3 h-10 w-10 text-amber-500" />
         <h2 className="text-base font-bold text-slate-900">
@@ -78,7 +78,7 @@ export function CheckInUnavailableState({
             : 'Mã sự kiện không đúng hoặc phiên điểm danh đã kết thúc.'}
         </p>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -101,7 +101,7 @@ export function CheckInSuccessState({
   const methodLabel = methods.join(' và ');
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white p-6 text-center shadow-sm">
         <div className="mb-4 border-b border-slate-100 pb-4">
           <Image
@@ -137,7 +137,7 @@ export function CheckInSuccessState({
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
 

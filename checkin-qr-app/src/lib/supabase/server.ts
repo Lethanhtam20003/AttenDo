@@ -49,6 +49,21 @@ export async function createClient() {
 }
 
 export async function getUserSession() {
+  let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
+  try {
+    cookieStore = await cookies();
+  } catch {
+    // Bỏ qua khi ngoài request context
+  }
+
+  // Tránh gọi getUser() khi chưa có cookie phiên Supabase để không phát sinh lỗi Refresh Token
+  const hasAuthCookie = cookieStore
+    ? cookieStore.getAll().some((cookie) => cookie.name.startsWith('sb-'))
+    : false;
+  if (!hasAuthCookie) {
+    return null;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
