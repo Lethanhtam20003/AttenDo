@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowUpRight,
+  ArrowUpDown,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
   Clock3,
+  Filter,
   Hash,
   Loader2,
   MapPin,
@@ -19,8 +21,44 @@ import {
 import {
   getManagedEventAttendance,
   getManagedEvents,
+  type ManagedEvent,
 } from '@/actions/events';
 import { useHostManagementStore } from '@/stores/host-management-store';
+
+type EventTimingStatus = 'upcoming' | 'ongoing' | 'ended';
+
+const EVENT_STATUS_META: Record<
+  EventTimingStatus,
+  { label: string; badgeClassName: string }
+> = {
+  upcoming: {
+    label: 'Chưa bắt đầu',
+    badgeClassName: 'bg-amber-100 text-amber-800',
+  },
+  ongoing: {
+    label: 'Đang diễn ra',
+    badgeClassName: 'bg-emerald-100 text-emerald-700',
+  },
+  ended: {
+    label: 'Đã kết thúc',
+    badgeClassName: 'bg-slate-200 text-slate-600',
+  },
+};
+
+// Phân loại trạng thái theo mốc thời gian thực tế vì phiên hẹn giờ trước vẫn lưu status 'active' trong DB
+function getEventTimingStatus(
+  event: Pick<ManagedEvent, 'status' | 'starts_at' | 'expires_at'>
+): EventTimingStatus {
+  if (event.status !== 'active') return 'ended';
+
+  const now = Date.now();
+  const startsAtMs = new Date(event.starts_at).getTime();
+  const expiresAtMs = event.expires_at ? new Date(event.expires_at).getTime() : null;
+
+  if (expiresAtMs !== null && expiresAtMs <= now) return 'ended';
+  if (startsAtMs > now) return 'upcoming';
+  return 'ongoing';
+}
 
 const ATTENDANCE_SOLUTIONS = [
   {
@@ -63,7 +101,10 @@ export default function HostManagementPage() {
   const eventError = useHostManagementStore((state) => state.eventError);
   const attendanceError = useHostManagementStore((state) => state.attendanceError);
   const eventSearch = useHostManagementStore((state) => state.eventSearch);
+  const eventStatusFilter = useHostManagementStore((state) => state.eventStatusFilter);
+  const eventSortOrder = useHostManagementStore((state) => state.eventSortOrder);
   const attendeeSearch = useHostManagementStore((state) => state.attendeeSearch);
+  const attendeeSortOrder = useHostManagementStore((state) => state.attendeeSortOrder);
   const setEvents = useHostManagementStore((state) => state.setEvents);
   const setSelected = useHostManagementStore((state) => state.setSelected);
   const setIsLoadingEvents = useHostManagementStore((state) => state.setIsLoadingEvents);
@@ -71,7 +112,10 @@ export default function HostManagementPage() {
   const setEventError = useHostManagementStore((state) => state.setEventError);
   const setAttendanceError = useHostManagementStore((state) => state.setAttendanceError);
   const setEventSearch = useHostManagementStore((state) => state.setEventSearch);
+  const setEventStatusFilter = useHostManagementStore((state) => state.setEventStatusFilter);
+  const setEventSortOrder = useHostManagementStore((state) => state.setEventSortOrder);
   const setAttendeeSearch = useHostManagementStore((state) => state.setAttendeeSearch);
+  const setAttendeeSortOrder = useHostManagementStore((state) => state.setAttendeeSortOrder);
   const isCreateMenuOpen = useHostManagementStore((state) => state.isCreateMenuOpen);
   const setIsCreateMenuOpen = useHostManagementStore((state) => state.setIsCreateMenuOpen);
   const toggleCreateMenu = useHostManagementStore((state) => state.toggleCreateMenu);
@@ -154,24 +198,62 @@ export default function HostManagementPage() {
 
   const filteredEvents = useMemo(() => {
     const query = eventSearch.trim().toLocaleLowerCase('vi');
-    if (!query) return events;
-    return events.filter((event) => event.title.toLocaleLowerCase('vi').includes(query));
-  }, [eventSearch, events]);
+    return events
+      .filter((event) => {
+        const matchesSearch = !query || event.title.toLocaleLowerCase('vi').includes(query);
+        const matchesStatus =
+          eventStatusFilter === 'all' || getEventTimingStatus(event) === eventStatusFilter;
+        return matchesSearch && matchesStatus;
+      })
+      .sort((first, second) => {
+        if (eventSortOrder === 'title-asc') {
+          return first.title.localeCompare(second.title, 'vi');
+        }
+
+        if (eventSortOrder === 'created-desc') {
+          return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
+        }
+
+        const startDifference =
+          new Date(first.starts_at).getTime() - new Date(second.starts_at).getTime();
+        return eventSortOrder === 'start-desc' ? -startDifference : startDifference;
+      });
+  }, [eventSearch, eventSortOrder, eventStatusFilter, events]);
 
   const filteredAttendees = useMemo(() => {
     if (!selected) return [];
     const query = attendeeSearch.trim().toLocaleLowerCase('vi');
-    if (!query) return selected.attendees;
-    return selected.attendees.filter((attendee) => {
-      const searchableValues = [
-        attendee.full_name,
-        ...Object.values(attendee.custom_data ?? {}),
-      ];
-      return searchableValues.some((value) => value.toLocaleLowerCase('vi').includes(query));
-    });
-  }, [attendeeSearch, selected]);
+    return selected.attendees
+      .filter((attendee) => {
+        if (!query) return true;
+        const searchableValues = [
+          attendee.full_name,
+          ...Object.values(attendee.custom_data ?? {}),
+        ];
+        return searchableValues.some((value) => value.toLocaleLowerCase('vi').includes(query));
+      })
+      .sort((first, second) => {
+        if (attendeeSortOrder === 'name-asc' || attendeeSortOrder === 'name-desc') {
+          const nameOrder = first.full_name.localeCompare(second.full_name, 'vi');
+          return attendeeSortOrder === 'name-asc' ? nameOrder : -nameOrder;
+        }
 
-  const activeCount = events.filter((event) => event.status === 'active').length;
+        if (attendeeSortOrder === 'distance-asc' || attendeeSortOrder === 'distance-desc') {
+          if (first.distance_meters === null) return second.distance_meters === null ? 0 : 1;
+          if (second.distance_meters === null) return -1;
+          const distanceOrder = first.distance_meters - second.distance_meters;
+          return attendeeSortOrder === 'distance-asc' ? distanceOrder : -distanceOrder;
+        }
+
+        const checkInOrder =
+          new Date(first.checked_in_at).getTime() - new Date(second.checked_in_at).getTime();
+        return attendeeSortOrder === 'checked-in-desc' ? -checkInOrder : checkInOrder;
+      });
+  }, [attendeeSearch, attendeeSortOrder, selected]);
+
+  const activeCount = events.filter((event) => getEventTimingStatus(event) === 'ongoing').length;
+  const upcomingCount = events.filter((event) => getEventTimingStatus(event) === 'upcoming').length;
+  const endedCount = events.filter((event) => getEventTimingStatus(event) === 'ended').length;
   const customFields = selected?.event.custom_fields.filter((field) => field.key !== 'full_name') ?? [];
 
   return (
@@ -233,7 +315,7 @@ export default function HostManagementPage() {
           </div>
         </div>
 
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -248,11 +330,33 @@ export default function HostManagementPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Đang điểm danh</p>
+                <p className="text-sm text-slate-500">Đang diễn ra</p>
                 <p className="mt-1 text-2xl font-bold text-emerald-600">{activeCount}</p>
               </div>
               <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
                 <CheckCircle2 className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Chưa bắt đầu</p>
+                <p className="mt-1 text-2xl font-bold text-amber-600">{upcomingCount}</p>
+              </div>
+              <div className="rounded-xl bg-amber-50 p-3 text-amber-600">
+                <Clock3 className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Đã kết thúc</p>
+                <p className="mt-1 text-2xl font-bold text-slate-600">{endedCount}</p>
+              </div>
+              <div className="rounded-xl bg-slate-100 p-3 text-slate-600">
+                <CalendarDays className="h-5 w-5" />
               </div>
             </div>
           </div>
@@ -280,6 +384,62 @@ export default function HostManagementPage() {
                   className="min-w-0 flex-1 text-slate-900 outline-none placeholder:text-slate-400"
                 />
               </label>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <label className="min-w-0">
+                  <span className="mb-1 flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                    <Filter className="h-3.5 w-3.5" />
+                    Lọc trạng thái
+                  </span>
+                  <select
+                    aria-label="Lọc phiên theo trạng thái"
+                    value={eventStatusFilter}
+                    onChange={(event) => {
+                      const filter = event.currentTarget.value;
+                      if (
+                        filter === 'all' ||
+                        filter === 'upcoming' ||
+                        filter === 'ongoing' ||
+                        filter === 'ended'
+                      ) {
+                        setEventStatusFilter(filter);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                  >
+                    <option value="all">Tất cả</option>
+                    <option value="ongoing">Đang diễn ra</option>
+                    <option value="upcoming">Chưa bắt đầu</option>
+                    <option value="ended">Đã kết thúc</option>
+                  </select>
+                </label>
+                <label className="min-w-0">
+                  <span className="mb-1 flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    Sắp xếp
+                  </span>
+                  <select
+                    aria-label="Sắp xếp phiên điểm danh"
+                    value={eventSortOrder}
+                    onChange={(event) => {
+                      const sortOrder = event.currentTarget.value;
+                      if (
+                        sortOrder === 'start-desc' ||
+                        sortOrder === 'start-asc' ||
+                        sortOrder === 'title-asc' ||
+                        sortOrder === 'created-desc'
+                      ) {
+                        setEventSortOrder(sortOrder);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                  >
+                    <option value="start-desc">Bắt đầu gần nhất</option>
+                    <option value="start-asc">Bắt đầu sớm nhất</option>
+                    <option value="title-asc">Tên A–Z</option>
+                    <option value="created-desc">Mới tạo gần đây</option>
+                  </select>
+                </label>
+              </div>
             </div>
 
             <div className="max-h-[60dvh] overflow-y-auto p-3 lg:min-h-0 lg:max-h-none lg:flex-1">
@@ -322,6 +482,8 @@ export default function HostManagementPage() {
                 <ul className="space-y-2">
                   {filteredEvents.map((event) => {
                     const isSelected = selected?.event.id === event.id;
+                    const timingStatus = getEventTimingStatus(event);
+                    const statusMeta = EVENT_STATUS_META[timingStatus];
                     return (
                       <li key={event.id}>
                         <button
@@ -337,19 +499,17 @@ export default function HostManagementPage() {
                           <div className="flex items-start justify-between gap-3">
                             <span className="font-semibold text-slate-900">{event.title}</span>
                             <span
-                              className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ${
-                                event.status === 'active'
-                                  ? 'bg-emerald-100 text-emerald-700'
-                                  : 'bg-slate-200 text-slate-600'
-                              }`}
+                              className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ${statusMeta.badgeClassName}`}
                             >
-                              {event.status === 'active' ? 'Đang diễn ra' : 'Đã kết thúc'}
+                              {statusMeta.label}
                             </span>
                           </div>
-                          <span className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
-                            <Clock3 className="h-3.5 w-3.5" />
-                            {formatDate(event.created_at)}
-                          </span>
+                          <div className="mt-3 text-xs text-slate-500">
+                            <span className="flex items-center gap-1.5">
+                              <Clock3 className="h-3.5 w-3.5 shrink-0" />
+                              {formatDate(event.starts_at)}
+                            </span>
+                          </div>
                         </button>
                       </li>
                     );
@@ -384,18 +544,32 @@ export default function HostManagementPage() {
                 <div className="border-b border-slate-100 p-5 sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                        Chi tiết phiên điểm danh
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                          Chi tiết phiên điểm danh
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            EVENT_STATUS_META[getEventTimingStatus(selected.event)].badgeClassName
+                          }`}
+                        >
+                          {EVENT_STATUS_META[getEventTimingStatus(selected.event)].label}
+                        </span>
+                      </div>
                       <h2 className="mt-1 truncate text-xl font-bold text-slate-900">{selected.event.title}</h2>
-                      <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                        <Clock3 className="h-3.5 w-3.5" />
-                        {formatDate(selected.event.created_at)}
+                      <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          Bắt đầu: {formatDate(selected.event.starts_at)}
+                        </span>
+                        {selected.event.expires_at && (
+                          <span>Kết thúc: {formatDate(selected.event.expires_at)}</span>
+                        )}
                         {selected.event.location_lat !== null && (
-                          <>
-                            <MapPin className="ml-2 h-3.5 w-3.5" />
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5" />
                             Có thiết lập vị trí
-                          </>
+                          </span>
                         )}
                       </p>
                     </div>
@@ -411,16 +585,46 @@ export default function HostManagementPage() {
                     <p className="text-sm font-semibold text-slate-800">
                       {selected.attendees.length} người tham dự
                     </p>
-                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus-within:border-blue-500 sm:w-64">
-                      <Search className="h-4 w-4 shrink-0 text-slate-400" />
-                      <input
-                        aria-label="Tìm người tham dự"
-                        value={attendeeSearch}
-                        onChange={(event) => setAttendeeSearch(event.target.value)}
-                        placeholder="Tìm theo tên hoặc thông tin..."
-                        className="min-w-0 flex-1 text-slate-900 outline-none placeholder:text-slate-400"
-                      />
-                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus-within:border-blue-500 sm:w-64">
+                        <Search className="h-4 w-4 shrink-0 text-slate-400" />
+                        <input
+                          aria-label="Tìm người tham dự"
+                          value={attendeeSearch}
+                          onChange={(event) => setAttendeeSearch(event.target.value)}
+                          placeholder="Tìm theo tên hoặc thông tin..."
+                          className="min-w-0 flex-1 text-slate-900 outline-none placeholder:text-slate-400"
+                        />
+                      </label>
+                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 focus-within:border-blue-500">
+                        <ArrowUpDown className="h-4 w-4 shrink-0 text-slate-400" />
+                        <select
+                          aria-label="Sắp xếp người tham dự"
+                          value={attendeeSortOrder}
+                          onChange={(event) => {
+                            const sortOrder = event.currentTarget.value;
+                            if (
+                              sortOrder === 'checked-in-desc' ||
+                              sortOrder === 'checked-in-asc' ||
+                              sortOrder === 'name-asc' ||
+                              sortOrder === 'name-desc' ||
+                              sortOrder === 'distance-asc' ||
+                              sortOrder === 'distance-desc'
+                            ) {
+                              setAttendeeSortOrder(sortOrder);
+                            }
+                          }}
+                          className="min-w-0 flex-1 bg-transparent text-slate-700 outline-none"
+                        >
+                          <option value="checked-in-desc">Check-in mới nhất</option>
+                          <option value="checked-in-asc">Check-in cũ nhất</option>
+                          <option value="name-asc">Tên A–Z</option>
+                          <option value="name-desc">Tên Z–A</option>
+                          <option value="distance-asc">Khoảng cách gần nhất</option>
+                          <option value="distance-desc">Khoảng cách xa nhất</option>
+                        </select>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
