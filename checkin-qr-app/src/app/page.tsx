@@ -69,7 +69,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="services" className="scroll-mt-24 py-14 sm:py-20">
+        {/* <section id="services" className="scroll-mt-24 py-14 sm:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8 max-w-2xl sm:mb-10">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-blue-700">Dịch vụ của Trung tâm</p>
@@ -106,7 +106,7 @@ export default function HomePage() {
               </div>
             </article>
           </div>
-        </section>
+        </section> */}
 
         <Solutions />
 

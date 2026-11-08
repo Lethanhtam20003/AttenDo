@@ -1,15 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowUpRight,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Clock3,
+  Hash,
   Loader2,
   MapPin,
   Plus,
+  QrCode,
   Search,
   Users,
 } from 'lucide-react';
@@ -18,6 +21,32 @@ import {
   getManagedEvents,
 } from '@/actions/events';
 import { useHostManagementStore } from '@/stores/host-management-store';
+
+const ATTENDANCE_SOLUTIONS = [
+  {
+    href: '/host/dynamic-qr/setup',
+    title: 'QR động',
+    desc: 'Mã QR tự làm mới theo thời gian',
+    icon: <QrCode className="h-4 w-4 text-blue-600" />,
+  },
+  {
+    href: '/host/gps/setup',
+    title: 'Xác thực vị trí GPS',
+    desc: 'Check-in trong bán kính địa điểm',
+    icon: <MapPin className="h-4 w-4 text-blue-600" />,
+  },
+  {
+    href: '/host/qr-pin/setup',
+    title: 'QR kết hợp mã PIN',
+    desc: 'Quét QR và nhập mã PIN hiển thị',
+    icon: (
+      <span className="flex items-center text-blue-600" aria-hidden="true">
+        <QrCode className="h-3.5 w-3.5" />
+        <Hash className="h-3 w-3" />
+      </span>
+    ),
+  },
+] as const;
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString('vi-VN', {
@@ -43,11 +72,37 @@ export default function HostManagementPage() {
   const setAttendanceError = useHostManagementStore((state) => state.setAttendanceError);
   const setEventSearch = useHostManagementStore((state) => state.setEventSearch);
   const setAttendeeSearch = useHostManagementStore((state) => state.setAttendeeSearch);
+  const isCreateMenuOpen = useHostManagementStore((state) => state.isCreateMenuOpen);
+  const setIsCreateMenuOpen = useHostManagementStore((state) => state.setIsCreateMenuOpen);
+  const toggleCreateMenu = useHostManagementStore((state) => state.toggleCreateMenu);
   const reset = useHostManagementStore((state) => state.reset);
+  const createMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     reset();
   }, [reset]);
+
+  useEffect(() => {
+    if (!isCreateMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (event.target instanceof Node && !createMenuRef.current?.contains(event.target)) {
+        setIsCreateMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsCreateMenuOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isCreateMenuOpen, setIsCreateMenuOpen]);
 
   const handleSelectEvent = useCallback(async (eventId: string) => {
     setIsLoadingAttendance(true);
@@ -132,13 +187,50 @@ export default function HostManagementPage() {
               Theo dõi trạng thái phiên và danh sách người tham dự.
             </p>
           </div>
-          <Link
-            href="/host/gps/setup"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            Tạo phiên
-          </Link>
+          <div ref={createMenuRef} className="relative">
+            <button
+              type="button"
+              aria-expanded={isCreateMenuOpen}
+              aria-haspopup="menu"
+              aria-controls="create-session-menu"
+              onClick={toggleCreateMenu}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto"
+            >
+              <Plus className="h-4 w-4" />
+              Tạo phiên
+              <ChevronDown className={`h-4 w-4 transition-transform ${isCreateMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isCreateMenuOpen && (
+              <div
+                id="create-session-menu"
+                role="menu"
+                aria-label="Chọn giải pháp điểm danh"
+                className="absolute right-0 top-full z-40 mt-2 w-full min-w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl sm:w-80"
+              >
+                <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Chọn giải pháp điểm danh
+                </p>
+                {ATTENDANCE_SOLUTIONS.map((solution) => (
+                  <Link
+                    key={solution.href}
+                    href={solution.href}
+                    role="menuitem"
+                    onClick={() => setIsCreateMenuOpen(false)}
+                    className="flex items-start gap-3 rounded-xl px-3 py-2.5 transition hover:bg-blue-50/70"
+                  >
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                      {solution.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{solution.title}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{solution.desc}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2">
@@ -217,9 +309,13 @@ export default function HostManagementPage() {
                     {events.length ? 'Không tìm thấy phiên phù hợp' : 'Chưa có phiên nào'}
                   </p>
                   {!events.length && (
-                    <Link href="/host/gps/setup" className="mt-2 inline-block text-sm font-semibold text-blue-600 hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateMenuOpen(true)}
+                      className="mt-2 inline-block text-sm font-semibold text-blue-600 hover:underline"
+                    >
                       Tạo phiên đầu tiên
-                    </Link>
+                    </button>
                   )}
                 </div>
               ) : (

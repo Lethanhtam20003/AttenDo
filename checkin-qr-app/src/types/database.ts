@@ -27,6 +27,7 @@ export interface Event {
   created_by: string | null;
   title: string;
   created_at: string;
+  starts_at: string;
   expires_at: string | null;
   status: 'draft' | 'active' | 'closed';
 
@@ -43,6 +44,7 @@ export type CheckInEvent = Pick<
   | 'id'
   | 'title'
   | 'status'
+  | 'starts_at'
   | 'location_lat'
   | 'location_lng'
   | 'radius_meters'

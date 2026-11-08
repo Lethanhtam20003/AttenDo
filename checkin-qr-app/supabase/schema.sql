@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS events (
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   title VARCHAR(255) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
   status VARCHAR(50) DEFAULT 'active', -- 'draft' | 'active' | 'closed'
 
@@ -29,6 +30,8 @@ ALTER TABLE events
   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE events
   ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 -- 2. BẢNG MÃ PIN ĐỘNG
 CREATE TABLE IF NOT EXISTS event_pins (
@@ -141,16 +144,22 @@ SET search_path = pg_catalog, public
 AS $$
 DECLARE
   event_status TEXT;
+  event_starts_at TIMESTAMPTZ;
   event_expires_at TIMESTAMPTZ;
 BEGIN
-  SELECT status, expires_at
-  INTO event_status, event_expires_at
+  SELECT status, starts_at, expires_at
+  INTO event_status, event_starts_at, event_expires_at
   FROM public.events
   WHERE id = NEW.event_id
   FOR UPDATE;
 
   IF event_status IS DISTINCT FROM 'active' THEN
     RAISE EXCEPTION 'Event is not active'
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF TG_TABLE_NAME = 'attendance_records' AND event_starts_at > NOW() THEN
+    RAISE EXCEPTION 'Event has not started yet'
       USING ERRCODE = 'check_violation';
   END IF;
 

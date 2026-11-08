@@ -19,7 +19,7 @@ export async function rotatePin(
 
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('status, module_settings')
+    .select('status, starts_at, module_settings')
     .eq('id', eventId)
     .eq('created_by', user.id)
     .maybeSingle();
@@ -37,7 +37,8 @@ export async function rotatePin(
 
   const pin = String(Math.floor(1000 + Math.random() * 9000));
   const refreshSeconds = getPinRefreshSeconds(event.module_settings?.pin_interval_seconds);
-  const expiresAt = new Date(Date.now() + refreshSeconds * 1000).toISOString();
+  const effectiveStart = Math.max(Date.now(), new Date(event.starts_at).getTime());
+  const expiresAt = new Date(effectiveStart + refreshSeconds * 1000).toISOString();
   const cleanupBefore = new Date(Date.now() - PIN_CLEANUP_RETENTION_SECONDS * 1000).toISOString();
 
   // Dọn dẹp các PIN đã hết hạn quá 2 phút
@@ -69,7 +70,7 @@ export async function getCurrentPin(
 
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('status')
+    .select('status, starts_at')
     .eq('id', eventId)
     .eq('created_by', user.id)
     .maybeSingle();

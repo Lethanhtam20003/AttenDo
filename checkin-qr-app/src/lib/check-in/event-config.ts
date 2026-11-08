@@ -24,6 +24,7 @@ export function serializeCheckInEventConfig(event: CheckInEvent): string {
     id: event.id,
     title: event.title,
     status: event.status,
+    starts_at: event.starts_at,
     location_lat: event.location_lat,
     location_lng: event.location_lng,
     radius_meters: event.radius_meters,
@@ -56,6 +57,8 @@ export function parseCheckInEventConfig(
 
     if (!['active', 'closed', 'draft'].includes(String(value.status))) return null;
     if (
+      typeof value.starts_at !== 'string' ||
+      !Number.isFinite(Date.parse(value.starts_at)) ||
       !(value.location_lat === null || (typeof value.location_lat === 'number' && Number.isFinite(value.location_lat))) ||
       !(value.location_lng === null || (typeof value.location_lng === 'number' && Number.isFinite(value.location_lng))) ||
       typeof value.radius_meters !== 'number' ||
@@ -80,6 +83,7 @@ export function parseCheckInEventConfig(
       id: value.id,
       title: value.title,
       status: value.status as CheckInEvent['status'],
+      starts_at: value.starts_at,
       location_lat: value.location_lat,
       location_lng: value.location_lng,
       radius_meters: value.radius_meters,

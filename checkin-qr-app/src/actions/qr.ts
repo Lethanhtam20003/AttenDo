@@ -16,7 +16,7 @@ export async function issueDynamicQrToken(
 
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('status, module_settings')
+    .select('status, starts_at, module_settings')
     .eq('id', eventId)
     .eq('created_by', user.id)
     .maybeSingle();
@@ -37,8 +37,9 @@ export async function issueDynamicQrToken(
   const refreshSeconds = getQrTokenRefreshSeconds(
     event.module_settings?.dynamic_qr_interval_seconds
   );
+  const effectiveStart = Math.max(now.getTime(), new Date(event.starts_at).getTime());
   const expiresAt = new Date(
-    now.getTime() + (refreshSeconds + QR_TOKEN_REFRESH_GRACE_SECONDS) * 1000
+    effectiveStart + (refreshSeconds + QR_TOKEN_REFRESH_GRACE_SECONDS) * 1000
   ).toISOString();
 
   const { error: cleanupError } = await supabase

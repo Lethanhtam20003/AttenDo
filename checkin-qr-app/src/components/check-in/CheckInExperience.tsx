@@ -11,10 +11,13 @@ import {
   CheckInLoadingState,
   CheckInSubmitState,
   CheckInSuccessState,
+  CheckInUnavailableState,
 } from '@/components/check-in/CheckInShared';
 import { useCheckInEvent } from '@/hooks/check-in/useCheckInEvent';
 import type { CheckInRequirements } from '@/lib/check-in/solution';
 import type { CheckInEvent } from '@/types/database';
+import { useCheckInStore } from '@/stores/check-in-store';
+import { useEffect } from 'react';
 
 export function CheckInExperience({
   event,
@@ -24,7 +27,21 @@ export function CheckInExperience({
   requirements: CheckInRequirements;
 }) {
   const { loading } = useCheckInEvent(event);
+  const isBeforeStart = useCheckInStore((state) => state.isBeforeStart);
+  const setIsBeforeStart = useCheckInStore((state) => state.setIsBeforeStart);
+
+  useEffect(() => {
+    const updateStartStatus = () => {
+      setIsBeforeStart(event.id, new Date(event.starts_at).getTime() > Date.now());
+    };
+
+    updateStartStatus();
+    const timer = window.setInterval(updateStartStatus, 1000);
+    return () => window.clearInterval(timer);
+  }, [event.id, event.starts_at, setIsBeforeStart]);
+
   if (loading) return <CheckInLoadingState />;
+  if (isBeforeStart) return <CheckInUnavailableState startsAt={event.starts_at} />;
 
   return <CheckInFormExperience event={event} requirements={requirements} />;
 }
@@ -67,7 +84,7 @@ function CheckInFormExperience({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-slate-50 px-4 py-4 sm:py-6">
-      <CheckInHeader title={event.title} />
+      <CheckInHeader title={event.title} startsAt={event.starts_at} />
 
       <form
         onSubmit={form.handleSubmit}

@@ -13,14 +13,19 @@ import type {
   CustomFieldConfig,
   Event,
 } from '@/types/database';
+import { parseVietnamDateTimeLocal } from '@/lib/vietnam-time';
 
 export type ManagedEvent = Pick<
   Event,
-  'id' | 'title' | 'status' | 'created_at' | 'expires_at' | 'location_lat' | 'location_lng'
+  'id' | 'title' | 'status' | 'created_at' | 'starts_at' | 'expires_at' | 'location_lat' | 'location_lng'
 >;
+
+const DUPLICATE_EVENT_TITLE_ERROR =
+  'Tên phiên điểm danh này đã được sử dụng. Vui lòng chọn tên khác.';
 
 interface CreateEventInput {
   title: string;
+  starts_at: string;
   duration_minutes: number;
   location_lat: number | null;
   location_lng: number | null;
@@ -35,6 +40,30 @@ interface CreateEventInput {
   };
 }
 
+export async function checkEventTitle(
+  title: string
+): Promise<ActionResult<boolean>> {
+  await verifyAuth();
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) {
+    return { success: false, error: 'Vui lòng nhập tên sự kiện.' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('events')
+    .select('id')
+    .eq('title', normalizedTitle)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { success: false, error: 'Không thể kiểm tra tên phiên. Vui lòng thử lại.' };
+  }
+
+  return { success: true, data: !data };
+}
+
 /**
  * Tạo sự kiện mới và PIN đầu tiên.
  * Trả về { eventId, pin } nếu thành công.
@@ -43,6 +72,15 @@ export async function createEvent(
   input: CreateEventInput
 ): Promise<ActionResult<{ eventId: string; pin: string | null }>> {
   const user = await verifyAuth();
+  const title = input.title.trim();
+  if (!title) {
+    return { success: false, error: 'Vui lòng nhập tên sự kiện trước khi khởi chạy.' };
+  }
+  const startsAt = parseVietnamDateTimeLocal(input.starts_at);
+  if (!startsAt || startsAt.getTime() <= Date.now()) {
+    return { success: false, error: 'Vui lòng chọn ngày và giờ bắt đầu trong tương lai theo giờ Việt Nam.' };
+  }
+
   if (
     !Number.isInteger(input.duration_minutes) ||
     input.duration_minutes < 1 ||
@@ -78,15 +116,32 @@ export async function createEvent(
   }
 
   const supabase = await createClient();
-  const expiresAt = new Date(Date.now() + input.duration_minutes * 60 * 1000).toISOString();
+  const { data: existingEvent, error: titleCheckError } = await supabase
+    .from('events')
+    .select('id')
+    .eq('title', title)
+    .limit(1)
+    .maybeSingle();
+
+  if (titleCheckError) {
+    return { success: false, error: 'Không thể kiểm tra tên phiên. Vui lòng thử lại.' };
+  }
+  if (existingEvent) {
+    return { success: false, error: DUPLICATE_EVENT_TITLE_ERROR };
+  }
+
+  const expiresAt = new Date(
+    startsAt.getTime() + input.duration_minutes * 60 * 1000
+  ).toISOString();
 
   // 1. Tạo sự kiện
   const { data: event, error: eventError } = await supabase
     .from('events')
     .insert({
       created_by: user.id,
-      title: input.title,
+      title,
       status: 'active',
+      starts_at: startsAt.toISOString(),
       expires_at: expiresAt,
       location_lat: input.location_lat,
       location_lng: input.location_lng,
@@ -98,6 +153,9 @@ export async function createEvent(
     .single();
 
   if (eventError || !event) {
+    if (eventError?.code === '23505') {
+      return { success: false, error: DUPLICATE_EVENT_TITLE_ERROR };
+    }
     return { success: false, error: eventError?.message ?? 'Không thể tạo sự kiện.' };
   }
 
@@ -106,7 +164,7 @@ export async function createEvent(
   if (input.module_settings.require_pin) {
     pin = String(Math.floor(1000 + Math.random() * 9000));
     const expiresAt = new Date(
-      Date.now() + input.module_settings.pin_interval_seconds * 1000
+      startsAt.getTime() + input.module_settings.pin_interval_seconds * 1000
     ).toISOString();
 
     const { error: pinError } = await supabase
@@ -170,7 +228,7 @@ export async function getManagedEvents(): Promise<ActionResult<ManagedEvent[]>> 
 
   const { data, error } = await supabase
     .from('events')
-    .select('id, title, status, created_at, expires_at, location_lat, location_lng')
+    .select('id, title, status, created_at, starts_at, expires_at, location_lat, location_lng')
     .eq('created_by', user.id)
     .order('created_at', { ascending: false });
 

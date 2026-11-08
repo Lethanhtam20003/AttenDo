@@ -8,7 +8,7 @@ import type { useCheckInForm } from '@/hooks/check-in/useCheckInForm';
 
 export type CheckInFormState = ReturnType<typeof useCheckInForm>;
 
-export function CheckInHeader({ title }: { title: string }) {
+export function CheckInHeader({ title, startsAt }: { title: string; startsAt: string }) {
   return (
     <header className="pb-3 pt-1 text-center">
       <Image
@@ -21,6 +21,14 @@ export function CheckInHeader({ title }: { title: string }) {
       <p className="text-[11px] font-semibold text-blue-800">Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn</p>
       <h1 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Điểm danh</h1>
       <p className="mt-0.5 break-words text-sm font-medium text-slate-500">{title}</p>
+      <p className="mt-1 text-xs text-slate-500">
+        Bắt đầu lúc{' '}
+        {new Intl.DateTimeFormat('vi-VN', {
+          dateStyle: 'short',
+          timeStyle: 'short',
+          timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(new Date(startsAt))}
+      </p>
     </header>
   );
 }
@@ -37,22 +45,36 @@ export function CheckInLoadingState({ message = 'Đang tải thông tin phiên �
 export function CheckInUnavailableState({
   closed = false,
   invalidLink = false,
+  startsAt,
 }: {
   closed?: boolean;
   invalidLink?: boolean;
+  startsAt?: string;
 }) {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
       <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center">
         <ShieldAlert className="mx-auto mb-3 h-10 w-10 text-amber-500" />
         <h2 className="text-base font-bold text-slate-900">
-          {invalidLink ? 'Liên kết điểm danh không hợp lệ' : closed ? 'Phiên điểm danh đã kết thúc' : 'Phiên không tồn tại'}
+          {invalidLink
+            ? 'Liên kết điểm danh không hợp lệ'
+            : closed
+              ? 'Phiên điểm danh đã kết thúc'
+              : startsAt
+                ? 'Chưa đến thời gian điểm danh'
+                : 'Phiên không tồn tại'}
         </h2>
         <p className="mt-1 text-xs text-slate-500">
           {invalidLink
             ? 'Vui lòng quét mã QR mới đang hiển thị trên màn hình Host để mở biểu mẫu điểm danh.'
             : closed
             ? 'Host đã đóng phiên hoặc phiên đã hết thời gian tồn tại. Bạn không thể gửi thêm lượt điểm danh.'
+            : startsAt
+              ? `Phiên sẽ bắt đầu lúc ${new Intl.DateTimeFormat('vi-VN', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                  timeZone: 'Asia/Ho_Chi_Minh',
+                }).format(new Date(startsAt))}. Biểu mẫu sẽ mở tự động khi đến giờ.`
             : 'Mã sự kiện không đúng hoặc phiên điểm danh đã kết thúc.'}
         </p>
       </div>
