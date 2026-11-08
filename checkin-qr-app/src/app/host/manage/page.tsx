@@ -12,6 +12,7 @@ import {
   Download,
   Filter,
   Hash,
+  Link2,
   Loader2,
   MapPin,
   Plus,
@@ -24,6 +25,7 @@ import {
   getManagedEvents,
   type ManagedEvent,
 } from '@/actions/events';
+import { getOrCreatePresenterToken } from '@/actions/presenter';
 import { AttendanceExportModal } from '@/components/host/AttendanceExportModal';
 import { getDefaultSelectedColumnIds } from '@/lib/export/attendance-export';
 import { useAttendanceExportStore } from '@/stores/attendance-export-store';
@@ -123,9 +125,42 @@ export default function HostManagementPage() {
   const isCreateMenuOpen = useHostManagementStore((state) => state.isCreateMenuOpen);
   const setIsCreateMenuOpen = useHostManagementStore((state) => state.setIsCreateMenuOpen);
   const toggleCreateMenu = useHostManagementStore((state) => state.toggleCreateMenu);
+  const isCopyingPresenterLink = useHostManagementStore((state) => state.isCopyingPresenterLink);
+  const copiedPresenterEventId = useHostManagementStore((state) => state.copiedPresenterEventId);
+  const setIsCopyingPresenterLink = useHostManagementStore((state) => state.setIsCopyingPresenterLink);
+  const setCopiedPresenterEventId = useHostManagementStore((state) => state.setCopiedPresenterEventId);
   const reset = useHostManagementStore((state) => state.reset);
   const openExportModal = useAttendanceExportStore((state) => state.openModal);
   const createMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyPresenterLink = useCallback(
+    async (eventId: string) => {
+      if (isCopyingPresenterLink) return;
+      setIsCopyingPresenterLink(true);
+      setCopiedPresenterEventId(null);
+
+      try {
+        const result = await getOrCreatePresenterToken(eventId);
+        if (!result.success) {
+          alert(result.error);
+          return;
+        }
+
+        const presenterUrl = new URL(`/present/${eventId}`, window.location.origin);
+        presenterUrl.searchParams.set('code', result.data.token);
+        await navigator.clipboard.writeText(presenterUrl.toString());
+        setCopiedPresenterEventId(eventId);
+        window.setTimeout(() => {
+          setCopiedPresenterEventId(null);
+        }, 3000);
+      } catch {
+        alert('Không thể sao chép liên kết trình chiếu. Vui lòng thử lại.');
+      } finally {
+        setIsCopyingPresenterLink(false);
+      }
+    },
+    [isCopyingPresenterLink, setCopiedPresenterEventId, setIsCopyingPresenterLink]
+  );
 
   useEffect(() => {
     reset();
@@ -589,6 +624,23 @@ export default function HostManagementPage() {
                       >
                         <Download className="h-3.5 w-3.5" />
                         Xuất Excel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isCopyingPresenterLink}
+                        onClick={() => void handleCopyPresenterLink(selected.event.id)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-2 text-xs font-semibold text-brand-navy transition hover:bg-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isCopyingPresenterLink ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-blue" />
+                        ) : copiedPresenterEventId === selected.event.id ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-brand-green" />
+                        ) : (
+                          <Link2 className="h-3.5 w-3.5 text-brand-blue" />
+                        )}
+                        {copiedPresenterEventId === selected.event.id
+                          ? 'Đã copy link'
+                          : 'Link trình chiếu'}
                       </button>
                       <Link
                         href={`/host/live/${selected.event.id}`}

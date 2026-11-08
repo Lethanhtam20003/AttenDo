@@ -16,6 +16,7 @@ export default function ConditionalLayoutChrome({
 
   if (
     pathname.startsWith('/check-in') ||
+    pathname.startsWith('/present') ||
     (hideOnLive && pathname.startsWith('/host/live'))
   ) {
     return null;

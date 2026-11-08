@@ -10,7 +10,7 @@ const contactDetails = [
   {
     icon: MapPin,
     label: 'Địa chỉ',
-    value: 'Số 01, đường Mẫu, xã Xuân Sơn, tỉnh Phú Thọ',
+    value: 'Tổ 11, ấp Sơn Tân, xã Xuân Sơn, TP. Hồ Chí Minh',
     href: null,
   },
   {

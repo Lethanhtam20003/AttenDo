@@ -30,6 +30,8 @@ interface HostManagementState {
   attendeeSearch: string;
   attendeeSortOrder: AttendeeSortOrder;
   isCreateMenuOpen: boolean;
+  isCopyingPresenterLink: boolean;
+  copiedPresenterEventId: string | null;
   setEvents: (events: ManagedEvent[]) => void;
   setSelected: (selected: EventAttendance | null) => void;
   setIsLoadingEvents: (value: boolean) => void;
@@ -43,6 +45,8 @@ interface HostManagementState {
   setAttendeeSortOrder: (value: AttendeeSortOrder) => void;
   setIsCreateMenuOpen: (isOpen: boolean) => void;
   toggleCreateMenu: () => void;
+  setIsCopyingPresenterLink: (value: boolean) => void;
+  setCopiedPresenterEventId: (eventId: string | null) => void;
   reset: () => void;
 }
 
@@ -59,6 +63,8 @@ const initialState = {
   attendeeSearch: '',
   attendeeSortOrder: 'checked-in-desc' as AttendeeSortOrder,
   isCreateMenuOpen: false,
+  isCopyingPresenterLink: false,
+  copiedPresenterEventId: null,
 };
 
 export const useHostManagementStore = create<HostManagementState>((set) => ({
@@ -76,5 +82,7 @@ export const useHostManagementStore = create<HostManagementState>((set) => ({
   setAttendeeSortOrder: (attendeeSortOrder) => set({ attendeeSortOrder }),
   setIsCreateMenuOpen: (isCreateMenuOpen) => set({ isCreateMenuOpen }),
   toggleCreateMenu: () => set((state) => ({ isCreateMenuOpen: !state.isCreateMenuOpen })),
+  setIsCopyingPresenterLink: (isCopyingPresenterLink) => set({ isCopyingPresenterLink }),
+  setCopiedPresenterEventId: (copiedPresenterEventId) => set({ copiedPresenterEventId }),
   reset: () => set(initialState),
 }));

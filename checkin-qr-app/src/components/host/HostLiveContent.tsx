@@ -8,14 +8,17 @@ import {
   CheckCircle2,
   Clock3,
   Download,
+  Link2,
   Loader2,
   MapPin,
   Maximize2,
+  MonitorPlay,
   QrCode,
   ShieldCheck,
   Users,
   X,
 } from 'lucide-react';
+import { getOrCreatePresenterToken } from '@/actions/presenter';
 import { useHostLiveSession } from '@/hooks/host-live/useHostLiveSession';
 import {
   getPinRefreshSeconds,
@@ -32,7 +35,13 @@ function formatSessionCountdown(seconds: number) {
   return [hours, minutes, remainingSeconds].map((value) => String(value).padStart(2, '0')).join(':');
 }
 
-export function HostLiveContent({ eventId }: { eventId: string }) {
+export function HostLiveContent({
+  eventId,
+  presenterToken,
+}: {
+  eventId: string;
+  presenterToken?: string;
+}) {
   const {
     event,
     pin,
@@ -46,23 +55,57 @@ export function HostLiveContent({ eventId }: { eventId: string }) {
     handleEndEvent,
     isEnding,
     endError,
-  } = useHostLiveSession(eventId);
-  const { logs, newAttendeeId, handleExportExcel } = useAttendanceBoard(eventId, event);
+  } = useHostLiveSession(eventId, presenterToken);
+  const { logs, newAttendeeId, handleExportExcel } = useAttendanceBoard(
+    eventId,
+    event,
+    presenterToken
+  );
   const showEndConfirmation = useHostLiveStore((state) => state.showEndConfirmation);
   const showQrModal = useHostLiveStore((state) => state.showQrModal);
   const isSharingQr = useHostLiveStore((state) => state.isSharingQr);
   const shareMessage = useHostLiveStore((state) => state.shareMessage);
   const shareError = useHostLiveStore((state) => state.shareError);
   const copyFallbackUrl = useHostLiveStore((state) => state.copyFallbackUrl);
+  const isCopyingPresenterLink = useHostLiveStore((state) => state.isCopyingPresenterLink);
+  const presenterLinkMessage = useHostLiveStore((state) => state.presenterLinkMessage);
   const setShowEndConfirmation = useHostLiveStore((state) => state.setShowEndConfirmation);
   const setShowQrModal = useHostLiveStore((state) => state.setShowQrModal);
   const setIsSharingQr = useHostLiveStore((state) => state.setIsSharingQr);
   const setShareMessage = useHostLiveStore((state) => state.setShareMessage);
   const setShareError = useHostLiveStore((state) => state.setShareError);
   const setCopyFallbackUrl = useHostLiveStore((state) => state.setCopyFallbackUrl);
+  const setIsCopyingPresenterLink = useHostLiveStore((state) => state.setIsCopyingPresenterLink);
+  const setPresenterLinkMessage = useHostLiveStore((state) => state.setPresenterLinkMessage);
   const pinRefreshSeconds = getPinRefreshSeconds(
     event?.module_settings?.pin_interval_seconds
   );
+
+  const handleCopyPresenterLink = async () => {
+    if (isCopyingPresenterLink) return;
+    setIsCopyingPresenterLink(eventId, true);
+    setPresenterLinkMessage(eventId, null);
+
+    try {
+      const result = await getOrCreatePresenterToken(eventId);
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+
+      const presenterUrl = new URL(`/present/${eventId}`, window.location.origin);
+      presenterUrl.searchParams.set('code', result.data.token);
+      await navigator.clipboard.writeText(presenterUrl.toString());
+      setPresenterLinkMessage(eventId, 'Đã sao chép link trình chiếu!');
+      window.setTimeout(() => {
+        setPresenterLinkMessage(eventId, null);
+      }, 3000);
+    } catch {
+      alert('Không thể sao chép tự động. Vui lòng thử lại.');
+    } finally {
+      setIsCopyingPresenterLink(eventId, false);
+    }
+  };
 
   const handleDownloadQr = async () => {
     if (!checkInUrl || isSharingQr) return;
@@ -188,13 +231,37 @@ export function HostLiveContent({ eventId }: { eventId: string }) {
           )}
 
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <Link
-              href="/host/manage"
-              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 sm:px-4"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Quản lý phiên
-            </Link>
+            {presenterToken ? (
+              <span className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-brand-blue/25 bg-brand-blue/10 px-3 py-2 text-xs font-semibold text-brand-navy sm:px-4">
+                <MonitorPlay className="h-3.5 w-3.5 text-brand-blue" />
+                Chế độ trình chiếu
+              </span>
+            ) : (
+              <>
+                <Link
+                  href="/host/manage"
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 sm:px-4"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Quản lý phiên
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleCopyPresenterLink()}
+                  disabled={isCopyingPresenterLink}
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-brand-blue/30 bg-brand-blue/5 px-3 py-2 text-xs font-semibold text-brand-navy transition-colors hover:bg-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4"
+                >
+                  {isCopyingPresenterLink ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-blue" />
+                  ) : presenterLinkMessage ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-brand-green" />
+                  ) : (
+                    <Link2 className="h-3.5 w-3.5 text-brand-blue" />
+                  )}
+                  {presenterLinkMessage ?? 'Copy link trình chiếu'}
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={handleExportExcel}
@@ -464,7 +531,7 @@ export function HostLiveContent({ eventId }: { eventId: string }) {
 
                     <button
                       type="button"
-                      onClick={handleRotatePin}
+                      onClick={() => void handleRotatePin(true)}
                       className="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
                     >
                       Đổi mã PIN ngay
