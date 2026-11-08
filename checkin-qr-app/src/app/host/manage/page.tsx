@@ -33,11 +33,11 @@ const EVENT_STATUS_META: Record<
 > = {
   upcoming: {
     label: 'Chưa bắt đầu',
-    badgeClassName: 'bg-amber-100 text-amber-800',
+    badgeClassName: 'bg-brand-gold/25 text-amber-900',
   },
   ongoing: {
     label: 'Đang diễn ra',
-    badgeClassName: 'bg-emerald-100 text-emerald-700',
+    badgeClassName: 'bg-brand-green/12 text-brand-green',
   },
   ended: {
     label: 'Đã kết thúc',
@@ -261,8 +261,8 @@ export default function HostManagementPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-600">HỆ THỐNG ĐIỂM DANH / QUẢN LÝ</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            <p className="text-sm font-semibold text-brand-blue">HỆ THỐNG ĐIỂM DANH / QUẢN LÝ</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">
               Quản lý phiên điểm danh
             </h1>
             <p className="mt-2 text-sm text-slate-500">
@@ -276,7 +276,7 @@ export default function HostManagementPage() {
               aria-haspopup="menu"
               aria-controls="create-session-menu"
               onClick={toggleCreateMenu}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-blue sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Tạo phiên
@@ -320,9 +320,9 @@ export default function HostManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Tổng phiên</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">{events.length}</p>
+                <p className="mt-1 text-2xl font-bold text-brand-navy">{events.length}</p>
               </div>
-              <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
+              <div className="rounded-xl bg-brand-blue/10 p-3 text-brand-blue">
                 <CalendarDays className="h-5 w-5" />
               </div>
             </div>
@@ -331,9 +331,9 @@ export default function HostManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Đang diễn ra</p>
-                <p className="mt-1 text-2xl font-bold text-emerald-600">{activeCount}</p>
+                <p className="mt-1 text-2xl font-bold text-brand-green">{activeCount}</p>
               </div>
-              <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
+              <div className="rounded-xl bg-brand-green/10 p-3 text-brand-green">
                 <CheckCircle2 className="h-5 w-5" />
               </div>
             </div>
@@ -342,9 +342,9 @@ export default function HostManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Chưa bắt đầu</p>
-                <p className="mt-1 text-2xl font-bold text-amber-600">{upcomingCount}</p>
+                <p className="mt-1 text-2xl font-bold text-brand-orange">{upcomingCount}</p>
               </div>
-              <div className="rounded-xl bg-amber-50 p-3 text-amber-600">
+              <div className="rounded-xl bg-brand-gold/20 p-3 text-brand-orange">
                 <Clock3 className="h-5 w-5" />
               </div>
             </div>

@@ -20,29 +20,36 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="vi">
-      <body className={`${inter.className} flex min-h-screen flex-col`}>
+      <body className={`${inter.className} flex min-h-screen flex-col bg-slate-50 lg:flex-row`}>
         <Analytics />
         <Suspense fallback={null}>
-          <ConditionalLayoutChrome
-          >
+          <ConditionalLayoutChrome>
             <Suspense
               fallback={
-                <div
-                  className="h-16 border-b border-slate-200/80 bg-white/80"
-                  aria-hidden="true"
-                />
+                <>
+                  <div
+                    className="h-14 border-b border-slate-200/80 bg-white/90 lg:hidden"
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="hidden lg:sticky lg:top-0 lg:block lg:h-screen lg:w-64 lg:shrink-0 lg:border-r lg:border-slate-200/80 lg:bg-white"
+                    aria-hidden="true"
+                  />
+                </>
               }
             >
               <Header />
             </Suspense>
           </ConditionalLayoutChrome>
         </Suspense>
-        <main className="flex flex-1 flex-col">{children}</main>
-        <Suspense fallback={null}>
-          <ConditionalLayoutChrome>
-            <Footer />
-          </ConditionalLayoutChrome>
-        </Suspense>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="flex flex-1 flex-col">{children}</main>
+          <Suspense fallback={null}>
+            <ConditionalLayoutChrome>
+              <Footer />
+            </ConditionalLayoutChrome>
+          </Suspense>
+        </div>
       </body>
     </html>
   );

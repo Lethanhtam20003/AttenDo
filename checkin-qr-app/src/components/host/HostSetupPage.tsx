@@ -74,11 +74,11 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
     <div className="flex-1 bg-slate-50 px-4 py-10 sm:px-6">
       <div className="mx-auto mb-8 max-w-4xl">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-blue-700">
-            {module === 'gps' ? <MapPin className="h-4 w-4" /> : module === 'dynamic-qr' ? <QrCode className="h-4 w-4" /> : <ScanFace className="h-4 w-4" />}
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-brand-blue">
+            {module === 'gps' ? <MapPin className="h-4 w-4 text-brand-green" /> : module === 'dynamic-qr' ? <QrCode className="h-4 w-4 text-brand-blue" /> : <ScanFace className="h-4 w-4 text-brand-orange" />}
             Cấu hình giải pháp
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{details.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-brand-navy">{details.title}</h1>
           <p className="mt-1 text-sm text-slate-500">{details.description}</p>
         </div>
       </div>
@@ -512,7 +512,7 @@ export function HostSetupPage({ module }: { module: HostSetupModule }) {
           type="button"
           onClick={form.handleLaunch}
           disabled={form.isPending}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-h-11"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-blue disabled:opacity-60 sm:w-auto sm:min-h-11"
         >
           {form.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
           {form.isPending ? 'Đang khởi tạo...' : 'Bắt Đầu Điểm Danh'}
