@@ -22,6 +22,7 @@ import {
   getQrTokenRefreshSeconds,
 } from '@/constants/check-in';
 import { useAttendanceBoard } from '@/hooks/host-live/useAttendanceBoard';
+import { AttendanceExportModal } from '@/components/host/AttendanceExportModal';
 import { useHostLiveStore } from '@/stores/host-live-store';
 
 function formatSessionCountdown(seconds: number) {
@@ -197,10 +198,10 @@ export function HostLiveContent({ eventId }: { eventId: string }) {
             <button
               type="button"
               onClick={handleExportExcel}
-              className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 sm:flex-none sm:px-4"
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-navy px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-blue sm:flex-none sm:px-4"
             >
               <Download className="w-3.5 h-3.5" />
-              Xuất file (.csv / Excel)
+              Xuất file Excel
             </button>
             {event?.status === 'closed' ? (
               <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700">
@@ -546,6 +547,7 @@ export function HostLiveContent({ eventId }: { eventId: string }) {
           </div>
         </div>
       </div>
+      <AttendanceExportModal event={event} attendees={logs} />
     </div>
   );
 }
