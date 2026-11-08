@@ -16,6 +16,7 @@ interface HostManagementState {
   attendanceError: string | null;
   eventSearch: string;
   attendeeSearch: string;
+  isCreateMenuOpen: boolean;
   setEvents: (events: ManagedEvent[]) => void;
   setSelected: (selected: EventAttendance | null) => void;
   setIsLoadingEvents: (value: boolean) => void;
@@ -24,6 +25,8 @@ interface HostManagementState {
   setAttendanceError: (error: string | null) => void;
   setEventSearch: (value: string) => void;
   setAttendeeSearch: (value: string) => void;
+  setIsCreateMenuOpen: (isOpen: boolean) => void;
+  toggleCreateMenu: () => void;
   reset: () => void;
 }
 
@@ -36,6 +39,7 @@ const initialState = {
   attendanceError: null,
   eventSearch: '',
   attendeeSearch: '',
+  isCreateMenuOpen: false,
 };
 
 export const useHostManagementStore = create<HostManagementState>((set) => ({
@@ -48,5 +52,7 @@ export const useHostManagementStore = create<HostManagementState>((set) => ({
   setAttendanceError: (attendanceError) => set({ attendanceError }),
   setEventSearch: (eventSearch) => set({ eventSearch }),
   setAttendeeSearch: (attendeeSearch) => set({ attendeeSearch }),
+  setIsCreateMenuOpen: (isCreateMenuOpen) => set({ isCreateMenuOpen }),
+  toggleCreateMenu: () => set((state) => ({ isCreateMenuOpen: !state.isCreateMenuOpen })),
   reset: () => set(initialState),
 }));

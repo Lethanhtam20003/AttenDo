@@ -26,6 +26,7 @@ export interface CheckInLocationSamplePayload {
 interface CheckInState {
   eventId: string | null;
   event: CheckInEvent | null;
+  isBeforeStart: boolean;
   loading: boolean;
   fieldValues: Record<string, string>;
   pinInput: string;
@@ -47,6 +48,7 @@ interface CheckInState {
   isLocationModalDismissed: boolean;
   beginEvent: (eventId?: string) => void;
   setEvent: (eventId: string, event: CheckInEvent | null) => void;
+  setIsBeforeStart: (eventId: string, value: boolean) => void;
   setLoading: (eventId: string, loading: boolean) => void;
   setFieldValues: (
     eventId: string,
@@ -69,6 +71,7 @@ interface CheckInState {
 
 const emptyState = {
   event: null,
+  isBeforeStart: true,
   loading: true,
   fieldValues: {} as Record<string, string>,
   pinInput: '',
@@ -96,6 +99,9 @@ export const useCheckInStore = create<CheckInState>((set) => ({
   beginEvent: (eventId) => set({ eventId: eventId ?? null, ...emptyState }),
   setEvent: (eventId, event) => set((state) => (
     state.eventId === eventId ? { event } : {}
+  )),
+  setIsBeforeStart: (eventId, isBeforeStart) => set((state) => (
+    state.eventId === eventId ? { isBeforeStart } : {}
   )),
   setLoading: (eventId, loading) => set((state) => (
     state.eventId === eventId ? { loading } : {}

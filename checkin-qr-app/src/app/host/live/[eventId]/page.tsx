@@ -25,6 +25,7 @@ function HostLiveContent() {
     event,
     pin,
     timeLeft,
+    startTimeLeft,
     sessionTimeLeft,
     checkInUrl,
     qrTimeLeft,
@@ -122,6 +123,16 @@ function HostLiveContent() {
                 {event?.title || 'Đang kết nối sự kiện...'}
               </h1>
               <span className="block truncate text-xs text-slate-400">Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn · Phiên #{eventId}</span>
+              {event?.starts_at && (
+                <span className="mt-1 block text-xs text-slate-500">
+                  Bắt đầu điểm danh:{' '}
+                  {new Intl.DateTimeFormat('vi-VN', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                    timeZone: 'Asia/Ho_Chi_Minh',
+                  }).format(new Date(event.starts_at))}
+                </span>
+              )}
               {event?.expires_at && (
                 <span className="mt-1 flex items-center gap-1 text-xs text-slate-500">
                   <Clock3 className="h-3 w-3 shrink-0" />
@@ -134,6 +145,12 @@ function HostLiveContent() {
               )}
             </div>
           </div>
+
+          {startTimeLeft !== null && startTimeLeft > 0 && (
+            <p className="text-sm font-semibold text-blue-700">
+              Điểm danh bắt đầu sau {formatSessionCountdown(startTimeLeft)}
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {/* <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold">
@@ -360,7 +377,9 @@ function HostLiveContent() {
             {checkInUrl && (
               event?.module_settings?.dynamic_qr === true ? (
                 <p className="text-xs text-slate-500">
-                  Mã QR tự đổi sau {getQrTokenRefreshSeconds(event.module_settings.dynamic_qr_interval_seconds)} giây · còn {qrTimeLeft}s
+                  {startTimeLeft !== null && startTimeLeft > 0
+                    ? `Mã QR sẵn sàng; bắt đầu tự đổi sau mỗi ${getQrTokenRefreshSeconds(event.module_settings.dynamic_qr_interval_seconds)} giây kể từ giờ bắt đầu.`
+                    : `Mã QR tự đổi sau ${getQrTokenRefreshSeconds(event.module_settings.dynamic_qr_interval_seconds)} giây · còn ${qrTimeLeft}s`}
                 </p>
               ) : (
                 <p className="text-[11px] text-slate-400 font-mono break-all px-2 select-all">
@@ -383,7 +402,9 @@ function HostLiveContent() {
             {event?.module_settings?.require_pin !== false && (
               <div className="w-full mt-4 pt-5 border-t border-slate-100 flex flex-col items-center">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Mã PIN tự đổi sau {pinRefreshSeconds}s · còn {timeLeft}s
+                  {startTimeLeft !== null && startTimeLeft > 0
+                    ? `Mã PIN bắt đầu tự đổi sau ${pinRefreshSeconds}s kể từ giờ bắt đầu`
+                    : `Mã PIN tự đổi sau ${pinRefreshSeconds}s · còn ${timeLeft}s`}
                 </span>
 
                 <div className="w-full bg-slate-50 border border-slate-200/80 px-6 py-4 rounded-xl flex items-center justify-center">
@@ -395,7 +416,11 @@ function HostLiveContent() {
                 <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
                   <div
                     className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-linear"
-                    style={{ width: `${(timeLeft / pinRefreshSeconds) * 100}%` }}
+                    style={{
+                      width: `${startTimeLeft !== null && startTimeLeft > 0
+                        ? 100
+                        : Math.min(100, (timeLeft / pinRefreshSeconds) * 100)}%`,
+                    }}
                   />
                 </div>
 

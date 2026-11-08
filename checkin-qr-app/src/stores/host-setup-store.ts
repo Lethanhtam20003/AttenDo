@@ -8,6 +8,9 @@ interface Coordinates {
 
 interface HostSetupState {
   eventTitle: string;
+  startsAt: string;
+  titleAvailability: 'idle' | 'checking' | 'available' | 'taken' | 'error';
+  titleAvailabilityError: string | null;
   errorMsg: string | null;
   refreshInterval: string;
   sessionDurationValue: string;
@@ -20,6 +23,11 @@ interface HostSetupState {
   draggedFieldId: string | null;
   dropIndicator: { fieldId: string; placeAfter: boolean } | null;
   setEventTitle: (value: string) => void;
+  setStartsAt: (value: string) => void;
+  setTitleAvailability: (
+    value: HostSetupState['titleAvailability'],
+    error?: string | null
+  ) => void;
   setErrorMsg: (value: string | null) => void;
   setRefreshInterval: (value: string) => void;
   setSessionDurationValue: (value: string) => void;
@@ -43,6 +51,9 @@ const initialCoordinates = { lat: 10.64102, lng: 107.34564 };
 
 export const useHostSetupStore = create<HostSetupState>((set) => ({
   eventTitle: '',
+  startsAt: '',
+  titleAvailability: 'idle',
+  titleAvailabilityError: null,
   errorMsg: null,
   refreshInterval: '120',
   sessionDurationValue: '2',
@@ -54,7 +65,11 @@ export const useHostSetupStore = create<HostSetupState>((set) => ({
   locationError: null,
   draggedFieldId: null,
   dropIndicator: null,
-  setEventTitle: (eventTitle) => set({ eventTitle }),
+  setEventTitle: (eventTitle) =>
+    set({ eventTitle, titleAvailability: 'idle', titleAvailabilityError: null }),
+  setStartsAt: (startsAt) => set({ startsAt }),
+  setTitleAvailability: (titleAvailability, titleAvailabilityError = null) =>
+    set({ titleAvailability, titleAvailabilityError }),
   setErrorMsg: (errorMsg) => set({ errorMsg }),
   setRefreshInterval: (refreshInterval) => set({ refreshInterval }),
   setSessionDurationValue: (sessionDurationValue) => set({ sessionDurationValue }),
@@ -67,6 +82,9 @@ export const useHostSetupStore = create<HostSetupState>((set) => ({
   setDropIndicator: (dropIndicator) => set({ dropIndicator }),
   reset: (refreshInterval) => set({
     eventTitle: '',
+    startsAt: '',
+    titleAvailability: 'idle',
+    titleAvailabilityError: null,
     errorMsg: null,
     refreshInterval,
     sessionDurationValue: '2',

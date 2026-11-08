@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS events (
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   title VARCHAR(255) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
   status VARCHAR(50) DEFAULT 'active', -- 'draft' | 'active' | 'closed'
 
@@ -29,6 +30,8 @@ ALTER TABLE events
   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE events
   ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 -- 2. BẢNG MÃ PIN ĐỘNG
 CREATE TABLE IF NOT EXISTS event_pins (
@@ -141,16 +144,22 @@ SET search_path = pg_catalog, public
 AS $$
 DECLARE
   event_status TEXT;
+  event_starts_at TIMESTAMPTZ;
   event_expires_at TIMESTAMPTZ;
 BEGIN
-  SELECT status, expires_at
-  INTO event_status, event_expires_at
+  SELECT status, starts_at, expires_at
+  INTO event_status, event_starts_at, event_expires_at
   FROM public.events
   WHERE id = NEW.event_id
   FOR UPDATE;
 
   IF event_status IS DISTINCT FROM 'active' THEN
     RAISE EXCEPTION 'Event is not active'
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF TG_TABLE_NAME = 'attendance_records' AND event_starts_at > NOW() THEN
+    RAISE EXCEPTION 'Event has not started yet'
       USING ERRCODE = 'check_violation';
   END IF;
 
@@ -188,10 +197,19 @@ CREATE POLICY "Owners can read pins for active events"
   );
 REVOKE SELECT ON TABLE event_pins FROM anon;
 
--- Cho phép anon đọc danh sách điểm danh
-CREATE POLICY "Public can read attendance"
-  ON attendance_records FOR SELECT
-  USING (true);
+-- Chỉ cho phép Host sở hữu sự kiện đọc danh sách điểm danh
+DROP POLICY IF EXISTS "Public can read attendance" ON attendance_records;
+DROP POLICY IF EXISTS "Owners can read attendance for their events" ON attendance_records;
+CREATE POLICY "Owners can read attendance for their events"
+  ON attendance_records FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM events
+      WHERE events.id = attendance_records.event_id
+        AND (events.created_by = auth.uid() OR events.created_by IS NULL)
+    )
+  );
+REVOKE SELECT ON TABLE attendance_records FROM anon;
 
 -- ── Bật Supabase Realtime ─────────────────────────────────────
 DO $$
@@ -205,9 +223,25 @@ BEGIN
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.events;
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'attendance_records'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.attendance_records;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'event_pins'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.event_pins;
+  END IF;
 END;
 $$;
-
--- Hoặc chạy lệnh sau (nếu dùng supabase CLI):
--- ALTER PUBLICATION supabase_realtime ADD TABLE event_pins;
--- ALTER PUBLICATION supabase_realtime ADD TABLE attendance_records;

@@ -7,6 +7,7 @@ interface HostLiveState {
   event: Event | null;
   pin: string;
   timeLeft: number;
+  startTimeLeft: number | null;
   sessionTimeLeft: number | null;
   checkInUrl: string;
   qrTimeLeft: number;
@@ -24,6 +25,7 @@ interface HostLiveState {
   beginEvent: (eventId?: string) => void;
   setEvent: (eventId: string, event: Event | null) => void;
   setPin: (eventId: string, pin: string, timeLeft?: number) => void;
+  setStartTimeLeft: (eventId: string, seconds: number | null) => void;
   setCheckInUrl: (eventId: string, url: string) => void;
   setQrTimeLeft: (eventId: string, seconds: number) => void;
   setQrError: (eventId: string, error: string | null) => void;
@@ -45,6 +47,7 @@ const emptyState = {
   event: null,
   pin: '----',
   timeLeft: PIN_LIFETIME_SECONDS,
+  startTimeLeft: null,
   sessionTimeLeft: null,
   checkInUrl: '',
   qrTimeLeft: QR_TOKEN_LIFETIME_SECONDS,
@@ -72,6 +75,9 @@ export const useHostLiveStore = create<HostLiveState>((set) => ({
     state.eventId === eventId
       ? { pin, ...(timeLeft === undefined ? {} : { timeLeft }) }
       : {}
+  )),
+  setStartTimeLeft: (eventId, startTimeLeft) => set((state) => (
+    state.eventId === eventId ? { startTimeLeft } : {}
   )),
   setCheckInUrl: (eventId, checkInUrl) => set((state) => (
     state.eventId === eventId ? { checkInUrl } : {}

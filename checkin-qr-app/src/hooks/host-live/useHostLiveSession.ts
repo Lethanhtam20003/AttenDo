@@ -20,6 +20,7 @@ export function useHostLiveSession(eventId?: string) {
   const storedEvent = useHostLiveStore((state) => state.event);
   const storedPin = useHostLiveStore((state) => state.pin);
   const storedTimeLeft = useHostLiveStore((state) => state.timeLeft);
+  const startTimeLeft = useHostLiveStore((state) => state.startTimeLeft);
   const storedSessionTimeLeft = useHostLiveStore((state) => state.sessionTimeLeft);
   const storedCheckInUrl = useHostLiveStore((state) => state.checkInUrl);
   const storedQrTimeLeft = useHostLiveStore((state) => state.qrTimeLeft);
@@ -29,6 +30,7 @@ export function useHostLiveSession(eventId?: string) {
   const beginEvent = useHostLiveStore((state) => state.beginEvent);
   const setStoredEvent = useHostLiveStore((state) => state.setEvent);
   const setStoredPin = useHostLiveStore((state) => state.setPin);
+  const setStartTimeLeft = useHostLiveStore((state) => state.setStartTimeLeft);
   const setStoredCheckInUrl = useHostLiveStore((state) => state.setCheckInUrl);
   const setStoredQrTimeLeft = useHostLiveStore((state) => state.setQrTimeLeft);
   const setStoredQrError = useHostLiveStore((state) => state.setQrError);
@@ -66,7 +68,14 @@ export function useHostLiveSession(eventId?: string) {
       url.searchParams.set('config', serializeCheckInEventConfig(eventData));
       url.searchParams.set('qr', result.data.token);
       setStoredCheckInUrl(eventId, url.toString());
-      setStoredQrTimeLeft(eventId, refreshSeconds);
+      const startDelay = Math.max(
+        0,
+        new Date(eventData.starts_at).getTime() - Date.now()
+      );
+      setStoredQrTimeLeft(
+        eventId,
+        Math.ceil(startDelay / 1000) + refreshSeconds
+      );
       setStoredQrError(eventId, null);
     } catch (error) {
       setStoredQrError(eventId, error instanceof Error ? error.message : 'Không thể làm mới mã QR.');
@@ -82,18 +91,17 @@ export function useHostLiveSession(eventId?: string) {
       setStoredEvent(eventId, data as Event);
 
       if (data.status === 'active' && data.module_settings?.require_pin !== false) {
-        getCurrentPin(eventId).then((res) => {
-          if (res.success) {
-            const pinRefreshSeconds = getPinRefreshSeconds(
-              data.module_settings?.pin_interval_seconds
-            );
-            const remaining = Math.max(
-              1,
-              Math.round((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000)
-            );
-            setStoredPin(eventId, res.data.pin, Math.min(remaining, pinRefreshSeconds));
-          }
-        });
+        getCurrentPin(eventId)
+          .then((res) => {
+            if (res.success) {
+              const remaining = Math.max(
+                1,
+                Math.ceil((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000)
+              );
+              setStoredPin(eventId, res.data.pin, remaining);
+            }
+          })
+          .catch(() => undefined);
       }
 
       if (data.status === 'active' && data.module_settings?.dynamic_qr === true) {
@@ -106,7 +114,7 @@ export function useHostLiveSession(eventId?: string) {
         url.searchParams.set('config', serializeCheckInEventConfig(data as Event));
         setStoredCheckInUrl(eventId, url.toString());
       }
-    });
+    }).catch(() => undefined);
   }, [eventId, refreshDynamicQr, setStoredCheckInUrl, setStoredEvent, setStoredPin]);
 
   const qrRefreshSeconds = getQrTokenRefreshSeconds(
@@ -121,10 +129,14 @@ export function useHostLiveSession(eventId?: string) {
     startTransition(async () => {
       const res = await rotatePin(eventId);
       if (res.success && res.data) {
-        setStoredPin(eventId, res.data.pin, pinRefreshSeconds);
+        const remaining = Math.max(
+          1,
+          Math.ceil((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000)
+        );
+        setStoredPin(eventId, res.data.pin, remaining);
       }
     });
-  }, [event?.status, eventId, pinRefreshSeconds, setStoredPin]);
+  }, [event?.status, eventId, setStoredPin]);
 
   const handleEndEvent = useCallback(async () => {
     if (!eventId || event?.status !== 'active' || isEnding) return false;
@@ -157,6 +169,22 @@ export function useHostLiveSession(eventId?: string) {
   useEffect(() => {
     expirationEndRequested.current = false;
   }, [eventId]);
+
+  useEffect(() => {
+    if (!eventId || !event?.starts_at) return;
+
+    const updateStartTimeLeft = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((new Date(event.starts_at).getTime() - Date.now()) / 1000)
+      );
+      setStartTimeLeft(eventId, remaining);
+    };
+
+    updateStartTimeLeft();
+    const timer = window.setInterval(updateStartTimeLeft, 1000);
+    return () => window.clearInterval(timer);
+  }, [event?.starts_at, eventId, setStartTimeLeft]);
 
   useEffect(() => {
     if (!eventId || !event || event.status !== 'active' || !event.expires_at) {
@@ -231,7 +259,16 @@ export function useHostLiveSession(eventId?: string) {
     'INSERT',
     (payload) => {
       if (event?.status === 'active' && payload.new && 'current_pin' in payload.new) {
-        if (eventId) setStoredPin(eventId, payload.new.current_pin as string, pinRefreshSeconds);
+        if (eventId) {
+          const expiresAt =
+            'expires_at' in payload.new && typeof payload.new.expires_at === 'string'
+              ? payload.new.expires_at
+              : null;
+          const remaining = expiresAt
+            ? Math.max(1, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000))
+            : pinRefreshSeconds;
+          setStoredPin(eventId, payload.new.current_pin as string, remaining);
+        }
       }
     }
   );
@@ -240,6 +277,7 @@ export function useHostLiveSession(eventId?: string) {
     event,
     pin,
     timeLeft,
+    startTimeLeft: isCurrentEvent ? startTimeLeft : null,
     checkInUrl,
     qrTimeLeft,
     qrError,

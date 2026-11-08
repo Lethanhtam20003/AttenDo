@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { connection } from "next/server";
 import { logout } from "@/actions/auth";
 import { getUserSession } from "@/lib/supabase/server";
+import { MobileNavigation } from "@/components/layout/MobileNavigation";
 
 export default async function Header() {
   await connection();
@@ -60,31 +61,7 @@ export default async function Header() {
           )}
         </nav>
 
-        <details className="group relative sm:hidden">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
-            <Menu className="h-4 w-4" />
-            Menu
-          </summary>
-          <nav className="absolute right-0 top-full z-50 mt-2 flex w-56 flex-col gap-1 rounded-2xl border border-slate-200 bg-white p-2 text-sm font-medium text-slate-700 shadow-xl">
-            <Link href="/#services" className="rounded-xl px-3 py-3 hover:bg-slate-50">Dịch vụ</Link>
-            <Link href="/#solutions" className="rounded-xl px-3 py-3 hover:bg-slate-50">Giải pháp</Link>
-            <Link href="/#about" className="rounded-xl px-3 py-3 hover:bg-slate-50">Giới thiệu</Link>
-            <Link href="/contact" className="rounded-xl px-3 py-3 hover:bg-slate-50">Liên hệ</Link>
-            {user ? (
-              <>
-                <Link href="/host/manage" className="rounded-xl px-3 py-3 hover:bg-slate-50">Quản lý</Link>
-                <form action={logout}>
-                  <button type="submit" className="flex w-full items-center gap-2 rounded-xl px-3 py-3 text-left hover:bg-slate-50">
-                    <LogOut className="h-4 w-4" />
-                    Đăng xuất
-                  </button>
-                </form>
-              </>
-            ) : (
-              <Link href="/auth" className="rounded-xl bg-blue-600 px-3 py-3 text-white hover:bg-blue-700">Đăng nhập</Link>
-            )}
-          </nav>
-        </details>
+        <MobileNavigation isAuthenticated={Boolean(user)} />
       </div>
     </header>
   );
