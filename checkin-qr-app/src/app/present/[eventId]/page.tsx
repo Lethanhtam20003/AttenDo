@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { verifyPresenterAccess } from '@/actions/presenter';
 import { HostLiveContent } from '@/components/host/HostLiveContent';
@@ -70,7 +71,9 @@ async function PresenterRoute({ params, searchParams }: PresenterScreenProps) {
   return <HostLiveContent eventId={eventId} presenterToken={code} />;
 }
 
-export default function PresenterScreen(props: PresenterScreenProps) {
+export default async function PresenterScreen(props: PresenterScreenProps) {
+  await connection();
+
   return (
     <Suspense
       fallback={
