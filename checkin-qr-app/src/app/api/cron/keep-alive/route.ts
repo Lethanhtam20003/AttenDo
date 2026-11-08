@@ -1,10 +1,10 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { connection, NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export async function GET(request: NextRequest) {
+  // Đánh dấu route động tương thích với chế độ cacheComponents của Next.js 16
+  await connection();
+
   const cronSecret = process.env.CRON_SECRET?.trim();
 
   // Nếu đã cấu hình CRON_SECRET trên Vercel, chỉ cho phép request có Authorization: Bearer <CRON_SECRET>
