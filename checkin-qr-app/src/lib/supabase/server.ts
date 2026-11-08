@@ -1,6 +1,18 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+function isIgnorableAuthError(error: { name?: string; status?: number; message?: string } | null) {
+  if (!error) return false;
+
+  const message = error.message ?? '';
+  const isSessionMissing = error.name === 'AuthSessionMissingError';
+  const isUnauthorized = error.status === 401;
+  const isInvalidRefreshToken =
+    error.status === 400 && /refresh token|invalid refresh token/i.test(message);
+
+  return isSessionMissing || isUnauthorized || isInvalidRefreshToken;
+}
+
 /**
  * Dùng trong Server Components, Server Actions, Route Handlers.
  * Đọc cookie từ request để hỗ trợ xác thực phía server.
@@ -43,11 +55,7 @@ export async function getUserSession() {
     error,
   } = await supabase.auth.getUser();
 
-  if (
-    error &&
-    error.name !== 'AuthSessionMissingError' &&
-    error.status !== 401
-  ) {
+  if (error && !isIgnorableAuthError(error)) {
     throw new Error(`Unable to verify authenticated user: ${error.message}`);
   }
 

@@ -1,6 +1,18 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+function isIgnorableAuthError(error: { name?: string; status?: number; message?: string } | null) {
+  if (!error) return false;
+
+  const message = error.message ?? '';
+  const isSessionMissing = error.name === 'AuthSessionMissingError';
+  const isUnauthorized = error.status === 401;
+  const isInvalidRefreshToken =
+    error.status === 400 && /refresh token|invalid refresh token/i.test(message);
+
+  return isSessionMissing || isUnauthorized || isInvalidRefreshToken;
+}
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -31,12 +43,20 @@ export async function proxy(request: NextRequest) {
     error,
   } = await supabase.auth.getUser();
 
-  if (
-    error &&
-    error.name !== 'AuthSessionMissingError' &&
-    error.status !== 401
-  ) {
+  if (error && !isIgnorableAuthError(error)) {
     throw new Error(`Unable to verify authenticated user: ${error.message}`);
+  }
+
+  if (error && /refresh token|invalid refresh token/i.test(error.message ?? '')) {
+    request.cookies.getAll().forEach((cookie) => {
+      if (cookie.name.startsWith('sb-')) {
+        supabaseResponse.cookies.set(cookie.name, '', {
+          maxAge: 0,
+          expires: new Date(0),
+          path: '/',
+        });
+      }
+    });
   }
 
   if (request.nextUrl.pathname === '/auth') {

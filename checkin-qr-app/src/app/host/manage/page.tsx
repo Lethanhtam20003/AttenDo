@@ -49,29 +49,7 @@ export default function HostManagementPage() {
     reset();
   }, [reset]);
 
-  const loadEvents = useCallback(async () => {
-    try {
-      const result = await getManagedEvents();
-      setEventError(null);
-      if (!result.success) {
-        setEventError(result.error);
-        return;
-      }
-      setEvents(result.data);
-    } catch (error) {
-      setEventError(
-        error instanceof Error ? error.message : 'Không thể tải danh sách phiên điểm danh.'
-      );
-    } finally {
-      setIsLoadingEvents(false);
-    }
-  }, [setEventError, setEvents, setIsLoadingEvents]);
-
-  useEffect(() => {
-    void Promise.resolve().then(loadEvents);
-  }, [loadEvents]);
-
-  const handleSelectEvent = async (eventId: string) => {
+  const handleSelectEvent = useCallback(async (eventId: string) => {
     setIsLoadingAttendance(true);
     setAttendanceError(null);
     setAttendeeSearch('');
@@ -91,7 +69,33 @@ export default function HostManagementPage() {
     } finally {
       setIsLoadingAttendance(false);
     }
-  };
+  }, [setAttendanceError, setAttendeeSearch, setIsLoadingAttendance, setSelected]);
+
+  const loadEvents = useCallback(async () => {
+    try {
+      const result = await getManagedEvents();
+      setEventError(null);
+      if (!result.success) {
+        setEventError(result.error);
+        return;
+      }
+      setEvents(result.data);
+      // Tự động chọn phiên mới tạo gần nhất (đã sắp xếp giảm dần theo created_at từ server)
+      if (result.data.length > 0) {
+        void handleSelectEvent(result.data[0].id);
+      }
+    } catch (error) {
+      setEventError(
+        error instanceof Error ? error.message : 'Không thể tải danh sách phiên điểm danh.'
+      );
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [handleSelectEvent, setEventError, setEvents, setIsLoadingEvents]);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadEvents);
+  }, [loadEvents]);
 
   const filteredEvents = useMemo(() => {
     const query = eventSearch.trim().toLocaleLowerCase('vi');
