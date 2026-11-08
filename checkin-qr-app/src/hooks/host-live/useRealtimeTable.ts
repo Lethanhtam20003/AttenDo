@@ -32,8 +32,13 @@ export function useRealtimeTable<T extends Record<string, unknown>>(
     }
 
     const supabase = createClient();
+    // Mỗi listener cần channel ID riêng biệt để tránh đụng độ kênh đã subscribe trong Supabase client singleton
+    const channelId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+
     const channel = supabase
-      .channel(`realtime:${table}:${filter}`)
+      .channel(`realtime:${table}:${event}:${filter}:${channelId}`)
       .on(
         'postgres_changes',
         { event, schema: 'public', table, filter },
