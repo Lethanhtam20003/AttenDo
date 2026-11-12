@@ -150,8 +150,7 @@ BEGIN
   SELECT status, starts_at, expires_at
   INTO event_status, event_starts_at, event_expires_at
   FROM public.events
-  WHERE id = NEW.event_id
-  FOR UPDATE;
+  WHERE id = NEW.event_id;
 
   IF event_status IS DISTINCT FROM 'active' THEN
     RAISE EXCEPTION 'Event is not active'

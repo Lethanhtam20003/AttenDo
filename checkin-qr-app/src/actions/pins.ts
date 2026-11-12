@@ -12,7 +12,8 @@ import type { ActionResult } from '@/types/database';
  * Giữ lại PIN cũ trong vòng 2 phút để hỗ trợ độ trễ mạng lúc chuyển chu kỳ.
  */
 export async function rotatePin(
-  eventId: string
+  eventId: string,
+  forceRotate = false
 ): Promise<ActionResult<{ pin: string; expiresAt: string }>> {
   const user = await verifyAuth();
   const supabase = await createClient();
@@ -33,6 +34,27 @@ export async function rotatePin(
   }
   if (event.status !== 'active') {
     return { success: false, error: 'Phiên điểm danh đã kết thúc.' };
+  }
+
+  // Tái sử dụng PIN vừa được màn hình khác tạo nếu đây là lệnh xoay tự động hết chu kỳ
+  if (!forceRotate) {
+    const { data: existingPin } = await supabase
+      .from('event_pins')
+      .select('current_pin, expires_at')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (
+      existingPin &&
+      new Date(existingPin.expires_at).getTime() > Date.now() + 1000
+    ) {
+      return {
+        success: true,
+        data: { pin: existingPin.current_pin, expiresAt: existingPin.expires_at },
+      };
+    }
   }
 
   const pin = String(Math.floor(1000 + Math.random() * 9000));
@@ -101,9 +123,9 @@ export async function getCurrentPin(
     return rotatePin(eventId);
   }
 
-  // Nếu PIN hiện tại đã hết hạn, tự động rotate
-  if (new Date(data.expires_at) < new Date()) {
-    return rotatePin(eventId);
+  // Nếu PIN hiện tại đã hết hạn hoặc còn <= 1 giây, tự động rotate
+  if (new Date(data.expires_at).getTime() <= Date.now() + 1000) {
+    return rotatePin(eventId, false);
   }
 
   return { success: true, data: { pin: data.current_pin, expiresAt: data.expires_at } };
