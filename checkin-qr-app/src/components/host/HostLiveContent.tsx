@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -14,6 +15,7 @@ import {
   Loader2,
   MapPin,
   Maximize2,
+  MoreHorizontal,
   MonitorPlay,
   QrCode,
   ShieldCheck,
@@ -98,6 +100,17 @@ export function HostLiveContent({
   const pinRefreshSeconds = getPinRefreshSeconds(
     event?.module_settings?.pin_interval_seconds
   );
+
+  useEffect(() => {
+    if (!showQrModal) return;
+
+    const handleKeyDown = (keyboardEvent: KeyboardEvent) => {
+      if (keyboardEvent.key === 'Escape') setShowQrModal(eventId, false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [eventId, setShowQrModal, showQrModal]);
 
   const handleCopyPresenterLink = async () => {
     if (isCopyingPresenterLink) return;
@@ -208,10 +221,10 @@ export function HostLiveContent({
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header Glassmorphism */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 px-3 py-3 backdrop-blur-md sm:px-6 sm:py-3.5">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-start gap-3.5 sm:items-center">
-            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-1 shadow-xs">
+      <header className="border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md sm:px-6 sm:py-3.5 lg:sticky lg:top-0 lg:z-30">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
+            <div className="relative hidden h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-1 shadow-xs sm:block">
               <Image
                 src="/logo/trung-tam-cung-ung-dich-vu-cong-xa-xuan-son.png"
                 alt="Logo Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn"
@@ -221,17 +234,17 @@ export function HostLiveContent({
               />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-brand-blue">
+              <p className="hidden truncate text-[11px] font-semibold uppercase tracking-wider text-brand-blue sm:block">
                 Trung tâm Cung ứng Dịch vụ công xã Xuân Sơn
               </p>
-              <h1 className="mt-0.5 break-words text-base font-bold tracking-tight text-brand-navy sm:text-lg">
+              <h1 className="break-words text-base font-bold tracking-tight text-brand-navy sm:mt-0.5 sm:text-lg">
                 {event?.title || 'Đang kết nối sự kiện...'}
               </h1>
               {(event?.starts_at || event?.expires_at) && (
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] sm:mt-1.5 sm:gap-1.5 sm:text-xs">
                   {event?.starts_at && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-slate-50 px-2.5 py-1 font-medium text-slate-700">
-                      <CalendarClock className="h-3.5 w-3.5 shrink-0 text-brand-blue" />
+                    <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-0.5 font-medium text-slate-700 sm:gap-1.5 sm:px-2.5 sm:py-1">
+                      <CalendarClock className="h-3 w-3 shrink-0 text-brand-blue sm:h-3.5 sm:w-3.5" />
                       <span>Bắt đầu:</span>
                       <strong className="font-semibold text-slate-900">
                         {formatEventDateTime(event.starts_at)}
@@ -239,8 +252,8 @@ export function HostLiveContent({
                     </span>
                   )}
                   {event?.expires_at && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-slate-50 px-2.5 py-1 font-medium text-slate-700">
-                      <Clock3 className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                    <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-0.5 font-medium text-slate-700 sm:gap-1.5 sm:px-2.5 sm:py-1">
+                      <Clock3 className="h-3 w-3 shrink-0 text-slate-500 sm:h-3.5 sm:w-3.5" />
                       <span>Kết thúc:</span>
                       <strong className="font-semibold text-slate-900">
                         {formatEventDateTime(event.expires_at)}
@@ -250,10 +263,10 @@ export function HostLiveContent({
                   {event?.status === 'active' &&
                     (startTimeLeft === null || startTimeLeft <= 0) &&
                     sessionTimeLeft !== null && (
-                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-brand-green/25 bg-brand-green/10 px-2.5 py-1 font-semibold text-brand-green">
-                        <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-brand-green/25 bg-brand-green/10 px-2 py-0.5 font-semibold text-brand-green sm:gap-1.5 sm:px-2.5 sm:py-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-brand-green animate-pulse sm:h-2 sm:w-2" />
                         Đang điểm danh · Còn{' '}
-                        <span className="font-mono font-bold">
+                        <span className="font-mono font-bold tabular-nums">
                           {formatSessionCountdown(sessionTimeLeft)}
                         </span>
                       </span>
@@ -263,7 +276,71 @@ export function HostLiveContent({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className="flex w-full items-center gap-2 lg:hidden">
+            <details className="group relative min-w-0">
+              <summary className="inline-flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs [&::-webkit-details-marker]:hidden">
+                <MoreHorizontal className="h-4 w-4" />
+                Thao tác
+              </summary>
+              <div className="absolute left-0 top-full z-50 mt-2 flex w-64 max-w-[calc(100vw-1.5rem)] flex-col gap-1 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-lg">
+                {presenterToken ? (
+                  <span className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-blue/10 px-3 py-2 text-xs font-semibold text-brand-navy">
+                    <MonitorPlay className="h-3.5 w-3.5 text-brand-blue" />
+                    Chế độ trình chiếu
+                  </span>
+                ) : (
+                  <>
+                    <Link
+                      href="/host/manage"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <ArrowLeft className="h-4 w-4 text-slate-500" />
+                      Quản lý phiên
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyPresenterLink()}
+                      disabled={isCopyingPresenterLink}
+                      className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      {isCopyingPresenterLink ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-brand-blue" />
+                      ) : presenterLinkMessage ? (
+                        <CheckCircle2 className="h-4 w-4 text-brand-green" />
+                      ) : (
+                        <Link2 className="h-4 w-4 text-brand-blue" />
+                      )}
+                      {presenterLinkMessage ?? 'Copy link trình chiếu'}
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void handleExportExcel()}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  <Download className="h-4 w-4 text-brand-blue" />
+                  Xuất file Excel
+                </button>
+              </div>
+            </details>
+            {event?.status === 'closed' ? (
+              <span className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-3 text-xs font-semibold text-emerald-700">
+                <CheckCircle2 className="h-4 w-4" />
+                Đã kết thúc
+              </span>
+            ) : event?.status === 'active' ? (
+              <button
+                type="button"
+                onClick={() => setShowEndConfirmation(eventId, true)}
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rose-700"
+              >
+                Kết thúc điểm danh
+              </button>
+            ) : null}
+          </div>
+
+          <div className="hidden flex-wrap items-center gap-2 lg:flex lg:justify-end">
             {presenterToken ? (
               <span className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-brand-blue/25 bg-brand-blue/10 px-3 py-2 text-xs font-semibold text-brand-navy sm:px-4">
                 <MonitorPlay className="h-3.5 w-3.5 text-brand-blue" />
@@ -385,7 +462,7 @@ export function HostLiveContent({
 
       {showQrModal && checkInUrl && event?.status === 'active' && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-2 sm:p-4"
           onMouseDown={(mouseEvent) => {
             if (mouseEvent.target === mouseEvent.currentTarget) setShowQrModal(eventId, false);
           }}
@@ -394,7 +471,7 @@ export function HostLiveContent({
             role="dialog"
             aria-modal="true"
             aria-labelledby="enlarged-qr-title"
-            className="flex h-full w-full flex-col bg-white p-3 text-center sm:p-5"
+            className="flex h-full w-full flex-col bg-white p-2 text-center sm:p-4"
           >
             <div className="flex items-center justify-between gap-4">
               <h2 id="enlarged-qr-title" className="text-lg font-bold text-slate-900">
@@ -409,16 +486,31 @@ export function HostLiveContent({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="mt-3 flex min-h-0 w-full flex-1 justify-center rounded-2xl border border-slate-200 bg-white p-2">
+            <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 sm:mt-3 sm:p-2">
               <QRCodeCanvas
                 value={checkInUrl}
                 size={1024}
                 level="M"
                 includeMargin
                 aria-label="Mã QR điểm danh phóng to"
-                className="h-auto w-auto max-h-full max-w-full"
+                className="block h-auto w-auto max-h-full max-w-full object-contain"
               />
             </div>
+            {event.module_settings?.require_pin === true && (
+              <div className="mt-2 flex shrink-0 flex-col items-center rounded-xl bg-slate-50 px-4 py-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-slate-500">Mã PIN</span>
+                  <span className="font-mono text-4xl font-black tracking-[0.25em] text-slate-900 sm:text-5xl">
+                    {pin}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500">
+                  {startTimeLeft !== null && startTimeLeft > 0
+                    ? `Tự đổi sau ${pinRefreshSeconds}s kể từ giờ bắt đầu`
+                    : `Tự đổi sau ${timeLeft}s`}
+                </span>
+              </div>
+            )}
             {event.module_settings?.dynamic_qr === true && (
               <p className="mt-3 text-xs font-medium text-amber-700">
                 Mã tự làm mới sau {qrTimeLeft}s. Hãy quét mã đang hiển thị trên màn hình.
@@ -459,10 +551,10 @@ export function HostLiveContent({
       )}
 
       {/* Main Grid: Máy chiếu & Trực tiếp */}
-      <div className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 items-stretch gap-4 p-3 sm:gap-6 sm:p-6 lg:grid-cols-12">
+      <div className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 items-stretch gap-3 p-3 sm:gap-6 sm:p-6 lg:grid-cols-12">
         {/* Cột trái: QR Code & Dynamic PIN (Chiếm một nửa màn hình) */}
         <div className="lg:col-span-6 flex flex-col">
-          <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-200/80 bg-white p-4 text-center shadow-sm sm:p-6">
+          <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-200/80 bg-white p-3 text-center shadow-sm sm:p-6">
             {event?.status === 'closed' ? (
               <div className="flex flex-1 flex-col items-center justify-center py-12">
                 <CheckCircle2 className="h-12 w-12 text-emerald-600" />
@@ -473,21 +565,22 @@ export function HostLiveContent({
               </div>
             ) : (
               <>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium mb-5">
+                <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 sm:mb-5">
                   <QrCode className="w-3.5 h-3.5 text-blue-600" />
                   Quét mã bằng camera điện thoại
                 </div>
 
                 {/* QR Code thực tế */}
-                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-inner mb-3">
+                <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-inner sm:p-4">
                   {checkInUrl ? (
                     <QRCodeCanvas
                       id="checkIn-qr-code"
                       value={checkInUrl}
-                      size={200}
+                      size={1024}
                       level="M"
                       includeMargin
                       aria-label="Mã QR điểm danh"
+                      style={{ height: 200, width: 200 }}
                     />
                   ) : (
                     <div className="w-48 h-48 bg-slate-100 rounded-xl flex items-center justify-center">
@@ -495,12 +588,12 @@ export function HostLiveContent({
                     </div>
                   )}
                 </div>
-                <div className="mb-3 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <div className="mb-3 grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setShowQrModal(eventId, true)}
                     disabled={!checkInUrl}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl border border-slate-200 px-2 py-2 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:gap-2 sm:px-4 sm:text-xs"
                   >
                     <Maximize2 className="h-4 w-4" />
                     Phóng to mã QR
@@ -509,7 +602,7 @@ export function HostLiveContent({
                     type="button"
                     onClick={() => void handleDownloadQr()}
                     disabled={!checkInUrl || isSharingQr}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-blue disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl bg-brand-navy px-2 py-2 text-[11px] font-semibold text-white transition hover:bg-brand-blue disabled:cursor-not-allowed disabled:opacity-50 sm:gap-2 sm:px-4 sm:text-xs"
                   >
                     {isSharingQr ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     {isSharingQr ? 'Đang tải mã QR...' : 'Tải mã QR'}
@@ -535,7 +628,7 @@ export function HostLiveContent({
                   </div>
                 )}
                 {event?.module_settings?.require_location === true && (
-                  <div className="mb-3 flex max-w-md items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-left">
+                  <div className="mb-3 flex max-w-md items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 p-2.5 text-left sm:p-3">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" />
                     <p className="text-xs leading-relaxed text-blue-900">
                       <strong>Nhắc người tham dự:</strong> cần bật Dịch vụ vị trí và cho phép Zalo/trình duyệt truy cập vị trí để điểm danh. iPhone: bật tại Cài đặt → Quyền riêng tư &amp; Bảo mật → Dịch vụ định vị. Android: bật Vị trí trong Cài đặt và cấp quyền vị trí cho ứng dụng đang quét QR.
@@ -543,15 +636,11 @@ export function HostLiveContent({
                   </div>
                 )}
                 {checkInUrl && (
-                  event?.module_settings?.dynamic_qr === true ? (
+                  event?.module_settings?.dynamic_qr === true && (
                     <p className="text-xs text-slate-500">
                       {startTimeLeft !== null && startTimeLeft > 0
                         ? `Mã QR sẵn sàng; bắt đầu tự đổi sau mỗi ${getQrTokenRefreshSeconds(event.module_settings.dynamic_qr_interval_seconds)} giây kể từ giờ bắt đầu.`
                         : `Mã QR tự đổi sau ${getQrTokenRefreshSeconds(event.module_settings.dynamic_qr_interval_seconds)} giây · còn ${qrTimeLeft}s`}
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-slate-400 font-mono break-all px-2 select-all">
-                      {checkInUrl}
                     </p>
                   )
                 )}
@@ -568,15 +657,15 @@ export function HostLiveContent({
 
                 {/* Dynamic PIN ngẫu nhiên */}
                 {event?.module_settings?.require_pin !== false && (
-                  <div className="w-full mt-4 pt-5 border-t border-slate-100 flex flex-col items-center">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  <div className="mt-3 flex w-full flex-col items-center border-t border-slate-100 pt-3 sm:mt-4 sm:pt-5">
+                    <span className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sm:mb-2 sm:text-xs">
                       {startTimeLeft !== null && startTimeLeft > 0
                         ? `Mã PIN bắt đầu tự đổi sau ${pinRefreshSeconds}s kể từ giờ bắt đầu`
                         : `Mã PIN tự đổi sau ${pinRefreshSeconds}s · còn ${timeLeft}s`}
                     </span>
 
-                    <div className="w-full bg-slate-50 border border-slate-200/80 px-6 py-4 rounded-xl flex items-center justify-center">
-                      <span className="font-mono text-5xl font-black tracking-widest text-slate-900">
+                    <div className="flex w-full items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3 sm:px-6 sm:py-4">
+                      <span className="font-mono text-4xl font-black tracking-widest text-slate-900 sm:text-5xl">
                         {pin}
                       </span>
                     </div>
@@ -595,7 +684,7 @@ export function HostLiveContent({
                     <button
                       type="button"
                       onClick={() => void handleRotatePin(true)}
-                      className="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                      className="mt-3 inline-flex min-h-11 items-center px-3 text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 sm:mt-4"
                     >
                       Đổi mã PIN ngay
                     </button>
@@ -608,17 +697,17 @@ export function HostLiveContent({
 
         <div className="lg:col-span-6 flex flex-col">
           <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 p-3 sm:flex-nowrap sm:p-5">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <Users className="w-5 h-5 text-blue-600" />
-                <h2 className="font-semibold text-slate-900">Danh sách có mặt thời gian thực</h2>
+                <h2 className="text-sm font-semibold text-slate-900 sm:text-base">Danh sách có mặt thời gian thực</h2>
               </div>
-              <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+              <span className="shrink-0 rounded-full border border-slate-100 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-500 sm:px-3 sm:text-xs">
                 Đã vào phòng: <span className="text-blue-600 font-bold text-sm">{logs.length}</span>
               </span>
             </div>
 
-            <div className="overflow-y-auto divide-y divide-slate-100 flex-1 max-h-[560px]">
+            <div className="flex-1 divide-y divide-slate-100 overflow-y-auto max-h-none lg:max-h-[560px]">
               {logs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 text-slate-400 text-sm gap-2">
                   <Users className="w-8 h-8 opacity-30" />
@@ -640,29 +729,29 @@ export function HostLiveContent({
                   return (
                     <div
                       key={item.id}
-                      className={`p-4 flex items-center justify-between transition-colors duration-500 ${
+                      className={`flex flex-col gap-2 p-3 transition-colors duration-500 sm:flex-row sm:items-center sm:justify-between sm:p-4 ${
                         isNew ? 'bg-blue-50/80' : 'hover:bg-slate-50/70'
                       }`}
                     >
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex min-w-0 items-center gap-3.5">
                         <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm shrink-0">
                           {item.full_name.charAt(0).toUpperCase()}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-900 leading-tight">
                             {item.full_name}
                           </p>
                           {extraInfo && (
-                            <p className="text-xs text-slate-500 mt-0.5">{extraInfo}</p>
+                            <p className="mt-0.5 break-words text-xs text-slate-500">{extraInfo}</p>
                           )}
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
+                      <div className="shrink-0 text-left sm:text-right">
                         <span className="text-xs font-mono font-medium text-slate-800 block">
                           {new Date(item.checked_in_at).toLocaleTimeString('vi-VN')}
                         </span>
-                        <span className="text-[11px] font-medium text-emerald-600 flex items-center justify-end gap-1 mt-0.5">
+                        <span className="mt-0.5 flex items-center justify-start gap-1 text-[11px] font-medium text-emerald-600 sm:justify-end">
                           <ShieldCheck className="w-3.5 h-3.5" />
                           {item.distance_meters !== null
                             ? `Cách ${item.distance_meters}m (Hợp lệ)`
