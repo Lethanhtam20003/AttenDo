@@ -33,6 +33,7 @@ AttenDo is a Vietnamese attendance web app. Hosts create time-limited sessions w
 - Check-in validation is enforced by the Postgres `check_in_to_event` RPC, not only by client UI: active/expiry, required fields, GPS radius, PIN, QR token, and duplicate device checks.
 - New host-generated check-in links carry the event display configuration needed to render the form and geofence, so opening the attendee route does not query the database. Treat URL configuration as display-only; the `check_in_to_event` RPC remains authoritative and is called on submission to validate current event settings and record attendance. GPS requests start only from an explicit user action and ask for high accuracy from the first request. The UI warns when reported accuracy exceeds 100 m; geofence checks remain server-authoritative. Denied permission, fast denial in in-app browsers, and unavailable device location show recovery guidance, with bounded timeout retries.
 - Core tables: `events`, `event_pins`, `event_qr_tokens`, `attendance_records`. Base schema is `supabase/schema.sql`; apply timestamped `supabase/migrations/` in order.
+- Hosts can permanently delete their own attendance sessions from `/host/manage`; foreign-key cascades remove attendance and session-related PIN, QR, and presenter-token records.
 
 ## Zustand Stores
 

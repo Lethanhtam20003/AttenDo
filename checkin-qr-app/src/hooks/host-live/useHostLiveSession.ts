@@ -139,7 +139,7 @@ export function useHostLiveSession(eventId?: string, presenterToken?: string) {
     startTransition(async () => {
       const res = presenterToken
         ? await getOrRotatePresenterPin(eventId, presenterToken, forceRotate)
-        : await rotatePin(eventId);
+        : await rotatePin(eventId, forceRotate);
       if (res.success && res.data) {
         const remaining = Math.max(
           1,
