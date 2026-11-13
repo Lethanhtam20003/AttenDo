@@ -601,7 +601,7 @@ export default function HostManagementPage() {
                             onClick={() => void handleSelectEvent(event.id)}
                             aria-pressed={isSelected}
                             disabled={isDeletingEvent}
-                            className={`group relative min-w-0 w-full rounded-xl border p-3.5 pr-3.5 [@media(hover:none)]:pr-14 [@media(hover:hover)]:group-hover:pr-14 text-left transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
+                            className={`group relative min-w-0 w-full rounded-xl border p-3.5 pr-3.5 [@media(hover:none)]:pr-14 text-left transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
                               isSelected
                                 ? 'border-blue-300 bg-blue-50/80 shadow-2xs border-l-4 border-l-blue-600 ring-1 ring-blue-200/50'
                                 : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/70 hover:shadow-2xs'
@@ -622,7 +622,7 @@ export default function HostManagementPage() {
                                 </div>
                               </div>
                               <span
-                                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusMeta.badgeClassName}`}
+                                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-transform duration-200 [@media(hover:hover)]:group-hover:-translate-x-12 ${statusMeta.badgeClassName}`}
                               >
                                 {statusMeta.label}
                               </span>
