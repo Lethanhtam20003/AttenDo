@@ -89,6 +89,13 @@ CREATE POLICY "Authenticated users can create owned events"
   ON events FOR INSERT TO authenticated
   WITH CHECK (created_by = auth.uid());
 
+DROP POLICY IF EXISTS "Owners can delete their events" ON events;
+CREATE POLICY "Owners can delete their events"
+  ON events FOR DELETE TO authenticated
+  USING (created_by = auth.uid());
+REVOKE DELETE ON TABLE events FROM PUBLIC, anon;
+GRANT DELETE ON TABLE events TO authenticated;
+
 DROP POLICY IF EXISTS "Owners can close events" ON events;
 CREATE POLICY "Owners can close events"
   ON events FOR UPDATE TO authenticated

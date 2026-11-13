@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useTransition } from 'react';
 import Link from 'next/link';
 import {
   ArrowUpRight,
@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Clock3,
   Download,
-  Filter,
   Hash,
   Link2,
   Loader2,
@@ -18,9 +17,11 @@ import {
   Plus,
   QrCode,
   Search,
+  Trash2,
   Users,
 } from 'lucide-react';
 import {
+  deleteManagedEvent,
   getManagedEventAttendance,
   getManagedEvents,
   type ManagedEvent,
@@ -64,6 +65,35 @@ function getEventTimingStatus(
   if (expiresAtMs !== null && expiresAtMs <= now) return 'ended';
   if (startsAtMs > now) return 'upcoming';
   return 'ongoing';
+}
+
+// Nhận diện các phương thức điểm danh được cấu hình cho phiên (GPS, QR động, Mã PIN, QR chuẩn)
+function getEventMethodBadges(
+  event: Pick<ManagedEvent, 'location_lat'> & {
+    module_settings?: ManagedEvent['module_settings'] | null;
+  }
+) {
+  const settings = event.module_settings ?? {};
+  const hasGps = event.location_lat !== null || settings.require_location === true;
+  const hasPin = settings.require_pin === true;
+  const hasDynamicQr = settings.dynamic_qr === true;
+
+  const badges: { key: string; label: string; icon: typeof MapPin }[] = [];
+
+  if (hasGps) {
+    badges.push({ key: 'gps', label: 'GPS', icon: MapPin });
+  }
+  if (hasDynamicQr) {
+    badges.push({ key: 'dynamic_qr', label: 'QR động', icon: QrCode });
+  }
+  if (hasPin) {
+    badges.push({ key: 'pin', label: 'Mã PIN', icon: Hash });
+  }
+  if (badges.length === 0) {
+    badges.push({ key: 'standard_qr', label: 'QR chuẩn', icon: QrCode });
+  }
+
+  return badges;
 }
 
 const ATTENDANCE_SOLUTIONS = [
@@ -132,6 +162,36 @@ export default function HostManagementPage() {
   const reset = useHostManagementStore((state) => state.reset);
   const openExportModal = useAttendanceExportStore((state) => state.openModal);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const [isDeletingEvent, startDeleteTransition] = useTransition();
+
+  const handleDeleteEvent = useCallback((event: ManagedEvent) => {
+    const confirmed = window.confirm(
+      `Bạn có chắc muốn xóa vĩnh viễn phiên điểm danh "${event.title}"? Toàn bộ danh sách người tham dự, mã PIN/QR và liên kết trình chiếu liên quan sẽ bị xóa. Thao tác này không thể hoàn tác.`
+    );
+    if (!confirmed) return;
+
+    startDeleteTransition(async () => {
+      try {
+        const result = await deleteManagedEvent(event.id);
+        if (!result.success) {
+          window.alert(result.error);
+          return;
+        }
+
+        setEvents(events.filter((managedEvent) => managedEvent.id !== event.id));
+        if (selected?.event.id === event.id) {
+          setSelected(null);
+          setAttendanceError(null);
+        }
+      } catch (error) {
+        window.alert(
+          error instanceof Error
+            ? error.message
+            : 'Không thể xóa phiên điểm danh. Vui lòng thử lại.'
+        );
+      }
+    });
+  }, [events, selected, setAttendanceError, setEvents, setSelected]);
 
   const handleCopyPresenterLink = useCallback(
     async (eventId: string) => {
@@ -402,34 +462,46 @@ export default function HostManagementPage() {
           </div>
         </div>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(300px,0.8fr)_minmax(0,1.7fr)]">
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:flex lg:h-[460px] lg:flex-col">
-            <div className="shrink-0 border-b border-slate-100 p-5">
+        <div className="grid items-start gap-6 lg:grid-cols-12">
+          {/* Cột trái: Danh sách phiên điểm danh - Mở rộng chiều ngang & chiều cao linh hoạt theo màn hình */}
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-5 xl:col-span-4 lg:sticky lg:top-6 lg:flex lg:h-[calc(100vh-140px)] lg:min-h-[640px] lg:max-h-[880px] lg:flex-col">
+            <div className="shrink-0 border-b border-slate-100 p-4 sm:p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="font-semibold text-slate-900">Các phiên điểm danh</h2>
-                  <p className="mt-1 text-xs text-slate-500">Chọn một phiên để xem người tham dự</p>
+                  <h2 className="text-base font-bold text-slate-900">Phiên điểm danh</h2>
+                  <p className="mt-0.5 text-xs text-slate-500">Chọn phiên để xem người tham dự</p>
                 </div>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                  {events.length}
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 border border-blue-100/60">
+                  {filteredEvents.length === events.length
+                    ? `${events.length} phiên`
+                    : `${filteredEvents.length}/${events.length}`}
                 </span>
               </div>
-              <label className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus-within:border-blue-500">
-                <Search className="h-4 w-4 shrink-0 text-slate-400" />
+
+              <div className="relative mt-3 flex items-center">
+                <Search className="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" />
                 <input
                   aria-label="Tìm phiên điểm danh"
                   value={eventSearch}
                   onChange={(event) => setEventSearch(event.target.value)}
-                  placeholder="Tìm tên phiên..."
-                  className="min-w-0 flex-1 text-slate-900 outline-none placeholder:text-slate-400"
+                  placeholder="Tìm kiếm theo tên phiên..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-8 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
                 />
-              </label>
-              <div className="mt-3 grid grid-cols-2 gap-2">
+                {eventSearch && (
+                  <button
+                    type="button"
+                    aria-label="Xóa từ khóa tìm kiếm"
+                    onClick={() => setEventSearch('')}
+                    className="absolute right-2.5 rounded-full p-0.5 text-slate-400 hover:text-slate-600"
+                  >
+                    <span className="text-xs font-bold leading-none">&times;</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
                 <label className="min-w-0">
-                  <span className="mb-1 flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                    <Filter className="h-3.5 w-3.5" />
-                    Lọc trạng thái
-                  </span>
+                  <span className="sr-only">Lọc trạng thái</span>
                   <select
                     aria-label="Lọc phiên theo trạng thái"
                     value={eventStatusFilter}
@@ -444,19 +516,16 @@ export default function HostManagementPage() {
                         setEventStatusFilter(filter);
                       }
                     }}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-6 text-xs font-medium text-slate-700 outline-none transition focus:border-blue-500"
                   >
-                    <option value="all">Tất cả</option>
-                    <option value="ongoing">Đang diễn ra</option>
-                    <option value="upcoming">Chưa bắt đầu</option>
-                    <option value="ended">Đã kết thúc</option>
+                    <option value="all">Tất cả ({events.length})</option>
+                    <option value="ongoing">Đang mở ({activeCount})</option>
+                    <option value="upcoming">Chưa mở ({upcomingCount})</option>
+                    <option value="ended">Đã đóng ({endedCount})</option>
                   </select>
                 </label>
                 <label className="min-w-0">
-                  <span className="mb-1 flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                    <ArrowUpDown className="h-3.5 w-3.5" />
-                    Sắp xếp
-                  </span>
+                  <span className="sr-only">Sắp xếp</span>
                   <select
                     aria-label="Sắp xếp phiên điểm danh"
                     value={eventSortOrder}
@@ -471,7 +540,7 @@ export default function HostManagementPage() {
                         setEventSortOrder(sortOrder);
                       }
                     }}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-6 text-xs font-medium text-slate-700 outline-none transition focus:border-blue-500"
                   >
                     <option value="start-desc">Bắt đầu gần nhất</option>
                     <option value="start-asc">Bắt đầu sớm nhất</option>
@@ -482,10 +551,10 @@ export default function HostManagementPage() {
               </div>
             </div>
 
-            <div className="max-h-[60dvh] overflow-y-auto p-3 lg:min-h-0 lg:max-h-none lg:flex-1">
+            <div className="max-h-[55dvh] overflow-y-auto p-3 lg:min-h-0 lg:max-h-none lg:flex-1">
               {isLoadingEvents ? (
                 <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                   Đang tải danh sách...
                 </div>
               ) : eventError ? (
@@ -526,31 +595,72 @@ export default function HostManagementPage() {
                     const statusMeta = EVENT_STATUS_META[timingStatus];
                     return (
                       <li key={event.id}>
-                        <button
-                          type="button"
-                          onClick={() => void handleSelectEvent(event.id)}
-                          aria-pressed={isSelected}
-                          className={`w-full rounded-xl border p-4 text-left transition ${
-                            isSelected
-                              ? 'border-blue-300 bg-blue-50/70 ring-1 ring-blue-100'
-                              : 'border-transparent bg-slate-50 hover:border-slate-200 hover:bg-white'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="font-semibold text-slate-900">{event.title}</span>
-                            <span
-                              className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ${statusMeta.badgeClassName}`}
-                            >
-                              {statusMeta.label}
-                            </span>
-                          </div>
-                          <div className="mt-3 text-xs text-slate-500">
-                            <span className="flex items-center gap-1.5">
-                              <Clock3 className="h-3.5 w-3.5 shrink-0" />
-                              {formatDate(event.starts_at)}
-                            </span>
-                          </div>
-                        </button>
+                        <div className="group relative">
+                          <button
+                            type="button"
+                            onClick={() => void handleSelectEvent(event.id)}
+                            aria-pressed={isSelected}
+                            disabled={isDeletingEvent}
+                            className={`group relative min-w-0 w-full rounded-xl border p-3.5 pr-3.5 [@media(hover:none)]:pr-14 [@media(hover:hover)]:group-hover:pr-14 text-left transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
+                              isSelected
+                                ? 'border-blue-300 bg-blue-50/80 shadow-2xs border-l-4 border-l-blue-600 ring-1 ring-blue-200/50'
+                                : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/70 hover:shadow-2xs'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2.5">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  {timingStatus === 'ongoing' && (
+                                    <span className="relative flex h-2 w-2 shrink-0">
+                                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                                    </span>
+                                  )}
+                                  <span className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                                    {event.title}
+                                  </span>
+                                </div>
+                              </div>
+                              <span
+                                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusMeta.badgeClassName}`}
+                              >
+                                {statusMeta.label}
+                              </span>
+                            </div>
+                            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                              <span className="inline-flex items-center gap-1.5">
+                                <Clock3 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                {formatDate(event.starts_at)}
+                              </span>
+                              {getEventMethodBadges(event).map((badge) => {
+                                const IconComponent = badge.icon;
+                                return (
+                                  <span
+                                    key={badge.key}
+                                    className="inline-flex items-center gap-1 text-slate-500"
+                                  >
+                                    <IconComponent className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                    {badge.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEvent(event)}
+                            disabled={isDeletingEvent}
+                            aria-label={`Xóa phiên ${event.title}`}
+                            title="Xóa phiên điểm danh"
+                            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-xl border border-rose-200 bg-white p-3 text-rose-600 opacity-100 transition duration-200 ease-out hover:bg-rose-50 focus-visible:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:scale-75 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:scale-100 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:pointer-events-auto"
+                          >
+                            {isDeletingEvent ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                       </li>
                     );
                   })}
@@ -559,29 +669,30 @@ export default function HostManagementPage() {
             </div>
           </section>
 
-          <section className="min-h-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:min-h-[460px]">
+          {/* Cột phải: Chi tiết phiên & Bảng người tham dự - Cân bằng chiều cao & cuộn độc lập */}
+          <section className="min-h-[420px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-7 xl:col-span-8 lg:flex lg:h-[calc(100vh-140px)] lg:min-h-[640px] lg:max-h-[880px] lg:flex-col">
             {isLoadingAttendance ? (
-              <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-slate-500 sm:min-h-[460px]">
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-sm text-slate-500">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                 Đang tải danh sách người tham dự...
               </div>
             ) : attendanceError ? (
-              <div className="flex min-h-[320px] items-center justify-center p-8 text-center sm:min-h-[460px]">
+              <div className="flex flex-1 items-center justify-center p-8 text-center">
                 <p role="alert" className="max-w-md text-sm text-rose-700">{attendanceError}</p>
               </div>
             ) : !selected ? (
-              <div className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center sm:min-h-[460px]">
+              <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
                 <div className="rounded-2xl bg-blue-50 p-4 text-blue-600">
                   <Users className="h-7 w-7" />
                 </div>
                 <h2 className="mt-4 font-semibold text-slate-900">Danh sách người tham dự</h2>
                 <p className="mt-1 max-w-sm text-sm text-slate-500">
-                Chọn một phiên ở danh sách để xem thông tin điểm danh.
+                  Chọn một phiên ở danh sách để xem thông tin điểm danh.
                 </p>
               </div>
             ) : (
               <>
-                <div className="border-b border-slate-100 p-5 sm:p-6">
+                <div className="shrink-0 border-b border-slate-100 p-5 sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -597,7 +708,7 @@ export default function HostManagementPage() {
                         </span>
                       </div>
                       <h2 className="mt-1 truncate text-xl font-bold text-slate-900">{selected.event.title}</h2>
-                      <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500">
                         <span className="inline-flex items-center gap-1.5">
                           <Clock3 className="h-3.5 w-3.5" />
                           Bắt đầu: {formatDate(selected.event.starts_at)}
@@ -605,13 +716,28 @@ export default function HostManagementPage() {
                         {selected.event.expires_at && (
                           <span>Kết thúc: {formatDate(selected.event.expires_at)}</span>
                         )}
-                        {selected.event.location_lat !== null && (
-                          <span className="inline-flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5" />
-                            Có thiết lập vị trí
-                          </span>
-                        )}
-                      </p>
+                        {getEventMethodBadges(selected.event).map((badge) => {
+                          const IconComponent = badge.icon;
+                          let detailLabel = badge.label;
+                          if (badge.key === 'gps' && selected.event.radius_meters) {
+                            detailLabel = `GPS (${selected.event.radius_meters}m)`;
+                          } else if (
+                            badge.key === 'dynamic_qr' &&
+                            selected.event.module_settings?.dynamic_qr_interval_seconds
+                          ) {
+                            detailLabel = `QR động (${selected.event.module_settings.dynamic_qr_interval_seconds}s)`;
+                          }
+                          return (
+                            <span
+                              key={badge.key}
+                              className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700"
+                            >
+                              <IconComponent className="h-3 w-3 text-slate-500" />
+                              {detailLabel}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
                       <button
@@ -699,7 +825,7 @@ export default function HostManagementPage() {
                 </div>
 
                 {filteredAttendees.length === 0 ? (
-                  <div className="px-6 py-16 text-center">
+                  <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
                     <Users className="mx-auto h-8 w-8 text-slate-300" />
                     <p className="mt-3 text-sm font-medium text-slate-700">
                       {selected.attendees.length ? 'Không tìm thấy người tham dự' : 'Chưa có ai điểm danh'}
@@ -712,7 +838,7 @@ export default function HostManagementPage() {
                   </div>
                 ) : (
                   <>
-                    <ul className="divide-y divide-slate-100 md:hidden">
+                    <ul className="divide-y divide-slate-100 md:hidden overflow-y-auto min-h-0 flex-1">
                       {filteredAttendees.map((attendee) => (
                         <li key={attendee.id} className="p-4">
                           <div className="flex items-start justify-between gap-3">
@@ -741,37 +867,37 @@ export default function HostManagementPage() {
                         </li>
                       ))}
                     </ul>
-                    <div className="hidden overflow-x-auto md:block">
-                    <table className="w-full min-w-[640px] text-left text-sm">
-                      <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                        <tr>
-                          <th className="px-5 py-3 font-semibold">Người tham dự</th>
-                          {customFields.map((field) => (
-                            <th key={field.key} className="px-4 py-3 font-semibold">{field.label}</th>
-                          ))}
-                          <th className="px-4 py-3 font-semibold">Thời gian</th>
-                          <th className="px-4 py-3 font-semibold">Khoảng cách</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {filteredAttendees.map((attendee) => (
-                          <tr key={attendee.id} className="hover:bg-slate-50/70">
-                            <td className="px-5 py-4 font-semibold text-slate-900">{attendee.full_name}</td>
+                    <div className="hidden md:block overflow-x-auto overflow-y-auto min-h-0 flex-1">
+                      <table className="w-full min-w-[640px] text-left text-sm">
+                        <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 shadow-2xs">
+                          <tr>
+                            <th className="px-5 py-3 font-semibold">Người tham dự</th>
                             {customFields.map((field) => (
-                              <td key={field.key} className="px-4 py-4 text-slate-600">
-                                {attendee.custom_data?.[field.key] || '—'}
-                              </td>
+                              <th key={field.key} className="px-4 py-3 font-semibold">{field.label}</th>
                             ))}
-                            <td className="whitespace-nowrap px-4 py-4 text-slate-600">
-                              {formatDate(attendee.checked_in_at)}
-                            </td>
-                            <td className="px-4 py-4 text-slate-600">
-                              {attendee.distance_meters === null ? '—' : `${attendee.distance_meters} m`}
-                            </td>
+                            <th className="px-4 py-3 font-semibold">Thời gian</th>
+                            <th className="px-4 py-3 font-semibold">Khoảng cách</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {filteredAttendees.map((attendee) => (
+                            <tr key={attendee.id} className="hover:bg-slate-50/70">
+                              <td className="px-5 py-4 font-semibold text-slate-900">{attendee.full_name}</td>
+                              {customFields.map((field) => (
+                                <td key={field.key} className="px-4 py-4 text-slate-600">
+                                  {attendee.custom_data?.[field.key] || '—'}
+                                </td>
+                              ))}
+                              <td className="whitespace-nowrap px-4 py-4 text-slate-600">
+                                {formatDate(attendee.checked_in_at)}
+                              </td>
+                              <td className="px-4 py-4 text-slate-600">
+                                {attendee.distance_meters === null ? '—' : `${attendee.distance_meters} m`}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </>
                 )}

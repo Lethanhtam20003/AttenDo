@@ -17,7 +17,15 @@ import { parseVietnamDateTimeLocal } from '@/lib/vietnam-time';
 
 export type ManagedEvent = Pick<
   Event,
-  'id' | 'title' | 'status' | 'created_at' | 'starts_at' | 'expires_at' | 'location_lat' | 'location_lng'
+  | 'id'
+  | 'title'
+  | 'status'
+  | 'created_at'
+  | 'starts_at'
+  | 'expires_at'
+  | 'location_lat'
+  | 'location_lng'
+  | 'module_settings'
 >;
 
 const DUPLICATE_EVENT_TITLE_ERROR =
@@ -228,7 +236,9 @@ export async function getManagedEvents(): Promise<ActionResult<ManagedEvent[]>> 
 
   const { data, error } = await supabase
     .from('events')
-    .select('id, title, status, created_at, starts_at, expires_at, location_lat, location_lng')
+    .select(
+      'id, title, status, created_at, starts_at, expires_at, location_lat, location_lng, module_settings'
+    )
     .eq('created_by', user.id)
     .order('created_at', { ascending: false });
 
@@ -237,6 +247,42 @@ export async function getManagedEvents(): Promise<ActionResult<ManagedEvent[]>> 
   }
 
   return { success: true, data: data ?? [] };
+}
+
+export async function deleteManagedEvent(
+  eventId: string
+): Promise<ActionResult<{ eventId: string }>> {
+  const user = await verifyAuth();
+  if (typeof eventId !== 'string') {
+    return { success: false, error: 'Không tìm thấy phiên điểm danh cần xóa.' };
+  }
+
+  const normalizedEventId = eventId.trim();
+  if (!normalizedEventId) {
+    return { success: false, error: 'Không tìm thấy phiên điểm danh cần xóa.' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', normalizedEventId)
+    .eq('created_by', user.id)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    return { success: false, error: 'Không thể xóa phiên điểm danh. Vui lòng thử lại.' };
+  }
+
+  if (!data) {
+    return {
+      success: false,
+      error: 'Không tìm thấy phiên điểm danh hoặc bạn không có quyền xóa phiên này.',
+    };
+  }
+
+  return { success: true, data: { eventId: data.id } };
 }
 
 export async function getManagedEventAttendance(
