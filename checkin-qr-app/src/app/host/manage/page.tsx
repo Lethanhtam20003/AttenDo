@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   ArrowUpRight,
   ArrowUpDown,
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
@@ -19,6 +20,7 @@ import {
   Search,
   Trash2,
   Users,
+  X,
 } from 'lucide-react';
 import {
   deleteManagedEvent,
@@ -157,24 +159,37 @@ export default function HostManagementPage() {
   const toggleCreateMenu = useHostManagementStore((state) => state.toggleCreateMenu);
   const isCopyingPresenterLink = useHostManagementStore((state) => state.isCopyingPresenterLink);
   const copiedPresenterEventId = useHostManagementStore((state) => state.copiedPresenterEventId);
+  const deletingEventId = useHostManagementStore((state) => state.deletingEventId);
+  const deleteConfirmationEvent = useHostManagementStore((state) => state.deleteConfirmationEvent);
+  const deleteError = useHostManagementStore((state) => state.deleteError);
   const setIsCopyingPresenterLink = useHostManagementStore((state) => state.setIsCopyingPresenterLink);
   const setCopiedPresenterEventId = useHostManagementStore((state) => state.setCopiedPresenterEventId);
+  const setDeletingEventId = useHostManagementStore((state) => state.setDeletingEventId);
+  const setDeleteConfirmationEvent = useHostManagementStore((state) => state.setDeleteConfirmationEvent);
+  const setDeleteError = useHostManagementStore((state) => state.setDeleteError);
   const reset = useHostManagementStore((state) => state.reset);
   const openExportModal = useAttendanceExportStore((state) => state.openModal);
   const createMenuRef = useRef<HTMLDivElement>(null);
   const [isDeletingEvent, startDeleteTransition] = useTransition();
 
   const handleDeleteEvent = useCallback((event: ManagedEvent) => {
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn xóa vĩnh viễn phiên điểm danh "${event.title}"? Toàn bộ danh sách người tham dự, mã PIN/QR và liên kết trình chiếu liên quan sẽ bị xóa. Thao tác này không thể hoàn tác.`
-    );
-    if (!confirmed) return;
+    if (deletingEventId !== null) return;
 
+    setDeleteError(null);
+    setDeleteConfirmationEvent(event);
+  }, [deletingEventId, setDeleteConfirmationEvent, setDeleteError]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!deleteConfirmationEvent || deletingEventId !== null) return;
+
+    const event = deleteConfirmationEvent;
+    setDeleteError(null);
+    setDeletingEventId(event.id);
     startDeleteTransition(async () => {
       try {
         const result = await deleteManagedEvent(event.id);
         if (!result.success) {
-          window.alert(result.error);
+          setDeleteError(result.error);
           return;
         }
 
@@ -183,15 +198,29 @@ export default function HostManagementPage() {
           setSelected(null);
           setAttendanceError(null);
         }
+        setDeleteConfirmationEvent(null);
       } catch (error) {
-        window.alert(
+        setDeleteError(
           error instanceof Error
             ? error.message
             : 'Không thể xóa phiên điểm danh. Vui lòng thử lại.'
         );
+      } finally {
+        setDeletingEventId(null);
       }
     });
-  }, [events, selected, setAttendanceError, setEvents, setSelected]);
+  }, [
+    deleteConfirmationEvent,
+    deletingEventId,
+    events,
+    selected,
+    setAttendanceError,
+    setDeleteConfirmationEvent,
+    setDeleteError,
+    setDeletingEventId,
+    setEvents,
+    setSelected,
+  ]);
 
   const handleCopyPresenterLink = useCallback(
     async (eventId: string) => {
@@ -225,6 +254,20 @@ export default function HostManagementPage() {
   useEffect(() => {
     reset();
   }, [reset]);
+
+  useEffect(() => {
+    if (!deleteConfirmationEvent || isDeletingEvent) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setDeleteConfirmationEvent(null);
+        setDeleteError(null);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [deleteConfirmationEvent, isDeletingEvent, setDeleteConfirmationEvent, setDeleteError]);
 
   useEffect(() => {
     if (!isCreateMenuOpen) return;
@@ -601,7 +644,9 @@ export default function HostManagementPage() {
                             onClick={() => void handleSelectEvent(event.id)}
                             aria-pressed={isSelected}
                             disabled={isDeletingEvent}
-                            className={`group relative min-w-0 w-full rounded-xl border p-3.5 pr-3.5 [@media(hover:none)]:pr-14 text-left transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
+                            className={`group relative min-w-0 w-full rounded-xl border p-3.5 pr-3.5 [@media(hover:none)]:pr-14 text-left transition-all duration-150 disabled:cursor-not-allowed ${
+                              deletingEventId === event.id ? 'opacity-60' : ''
+                            } ${
                               isSelected
                                 ? 'border-blue-300 bg-blue-50/80 shadow-2xs border-l-4 border-l-blue-600 ring-1 ring-blue-200/50'
                                 : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/70 hover:shadow-2xs'
@@ -652,9 +697,11 @@ export default function HostManagementPage() {
                             disabled={isDeletingEvent}
                             aria-label={`Xóa phiên ${event.title}`}
                             title="Xóa phiên điểm danh"
-                            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-xl border border-rose-200 bg-white p-3 text-rose-600 opacity-100 transition duration-200 ease-out hover:bg-rose-50 focus-visible:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:scale-75 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:scale-100 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:pointer-events-auto"
+                            className={`absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-xl border border-rose-200 bg-white p-3 text-rose-600 opacity-100 transition duration-200 ease-out hover:bg-rose-50 focus-visible:opacity-100 disabled:cursor-not-allowed motion-reduce:transition-none [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:scale-75 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:scale-100 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:pointer-events-auto ${
+                              deletingEventId === event.id ? 'opacity-50' : ''
+                            }`}
                           >
-                            {isDeletingEvent ? (
+                            {deletingEventId === event.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Trash2 className="h-4 w-4" />
@@ -906,6 +953,91 @@ export default function HostManagementPage() {
           </section>
         </div>
       </div>
+      {deleteConfirmationEvent && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          onMouseDown={(mouseEvent) => {
+            if (mouseEvent.target === mouseEvent.currentTarget && !isDeletingEvent) {
+              setDeleteConfirmationEvent(null);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-event-title"
+            aria-describedby="delete-event-description"
+            className="w-full max-w-md rounded-3xl border border-white/60 bg-white p-6 shadow-2xl sm:p-7"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 id="delete-event-title" className="text-lg font-bold text-slate-900">
+                  Xóa phiên điểm danh?
+                </h2>
+                <p className="mt-1 break-words text-sm font-semibold text-slate-700">
+                  {deleteConfirmationEvent.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Đóng hộp thoại"
+                onClick={() => {
+                  setDeleteConfirmationEvent(null);
+                  setDeleteError(null);
+                }}
+                disabled={isDeletingEvent}
+                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p id="delete-event-description" className="mt-4 text-sm leading-relaxed text-slate-600">
+              Toàn bộ danh sách người tham dự, mã PIN/QR và liên kết trình chiếu liên quan sẽ bị xóa.
+              <span className="mt-2 block font-semibold text-rose-700">
+                Thao tác này không thể hoàn tác.
+              </span>
+            </p>
+
+            {deleteError && (
+              <p role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                {deleteError}
+              </p>
+            )}
+
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteConfirmationEvent(null);
+                  setDeleteError(null);
+                }}
+                disabled={isDeletingEvent}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeletingEvent}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeletingEvent ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                {isDeletingEvent ? 'Đang xóa phiên...' : 'Xóa vĩnh viễn'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
       <AttendanceExportModal
         event={selected?.event}
         attendees={filteredAttendees}

@@ -212,7 +212,7 @@ CREATE POLICY "Owners can read attendance for their events"
     EXISTS (
       SELECT 1 FROM events
       WHERE events.id = attendance_records.event_id
-        AND (events.created_by = auth.uid() OR events.created_by IS NULL)
+        AND events.created_by = auth.uid()
     )
   );
 REVOKE SELECT ON TABLE attendance_records FROM anon;

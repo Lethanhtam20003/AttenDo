@@ -9,7 +9,7 @@ CREATE POLICY "Owners can read attendance for their events"
       SELECT 1
       FROM public.events
       WHERE events.id = attendance_records.event_id
-        AND (events.created_by = auth.uid() OR events.created_by IS NULL)
+        AND events.created_by = auth.uid()
     )
   );
 

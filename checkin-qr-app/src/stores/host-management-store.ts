@@ -32,6 +32,9 @@ interface HostManagementState {
   isCreateMenuOpen: boolean;
   isCopyingPresenterLink: boolean;
   copiedPresenterEventId: string | null;
+  deletingEventId: string | null;
+  deleteConfirmationEvent: ManagedEvent | null;
+  deleteError: string | null;
   setEvents: (events: ManagedEvent[]) => void;
   setSelected: (selected: EventAttendance | null) => void;
   setIsLoadingEvents: (value: boolean) => void;
@@ -47,6 +50,9 @@ interface HostManagementState {
   toggleCreateMenu: () => void;
   setIsCopyingPresenterLink: (value: boolean) => void;
   setCopiedPresenterEventId: (eventId: string | null) => void;
+  setDeletingEventId: (eventId: string | null) => void;
+  setDeleteConfirmationEvent: (event: ManagedEvent | null) => void;
+  setDeleteError: (error: string | null) => void;
   reset: () => void;
 }
 
@@ -65,6 +71,9 @@ const initialState = {
   isCreateMenuOpen: false,
   isCopyingPresenterLink: false,
   copiedPresenterEventId: null,
+  deletingEventId: null,
+  deleteConfirmationEvent: null,
+  deleteError: null,
 };
 
 export const useHostManagementStore = create<HostManagementState>((set) => ({
@@ -84,5 +93,8 @@ export const useHostManagementStore = create<HostManagementState>((set) => ({
   toggleCreateMenu: () => set((state) => ({ isCreateMenuOpen: !state.isCreateMenuOpen })),
   setIsCopyingPresenterLink: (isCopyingPresenterLink) => set({ isCopyingPresenterLink }),
   setCopiedPresenterEventId: (copiedPresenterEventId) => set({ copiedPresenterEventId }),
+  setDeletingEventId: (deletingEventId) => set({ deletingEventId }),
+  setDeleteConfirmationEvent: (deleteConfirmationEvent) => set({ deleteConfirmationEvent }),
+  setDeleteError: (deleteError) => set({ deleteError }),
   reset: () => set(initialState),
 }));
